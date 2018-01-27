@@ -10,7 +10,7 @@ public class ItemController : MonoBehaviour {
     const float kHorizontalVelocityDampenFactor = 0.98f;
      
     public enum Type {
-        None, RedHerring, EatenRedHerring
+        None, RedHerring, EatenRedHerring, GravityMittens
     };
     
     static public Type stringToType(string s) {

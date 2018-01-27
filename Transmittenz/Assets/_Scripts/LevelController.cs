@@ -9,8 +9,10 @@ public class LevelController : MonoBehaviour {
 
     GameObject levelTilemapGameObject;
     GameObject itemsTilemapGameObject;
+    GameObject interactablesTilemapGameObject;
     public Tilemap levelTilemap;
     public Tilemap itemsTilemap;
+    public Tilemap interactablesTilemap;
     public Image itemInventoryImage;
     public ItemController.Type itemInInventory;
 
@@ -29,8 +31,10 @@ public class LevelController : MonoBehaviour {
         
         levelTilemapGameObject = GameObject.FindGameObjectsWithTag("levelTilemap")[0];
         itemsTilemapGameObject = GameObject.FindGameObjectsWithTag("itemsTilemap")[0];
+        interactablesTilemapGameObject = GameObject.FindGameObjectsWithTag("interactablesTilemap")[0];
         levelTilemap = levelTilemapGameObject.GetComponent<Tilemap>();
         itemsTilemap = itemsTilemapGameObject.GetComponent<Tilemap>();
+        interactablesTilemap = interactablesTilemapGameObject.GetComponent<Tilemap>();
     }
     
     static public GameTile tileAtTilePosition(Tilemap map, Vector3Int tilePos) {
@@ -64,10 +68,9 @@ public class LevelController : MonoBehaviour {
          return null;
     }
     
-    public void setCurrentItemInInventory(GameObject item) {
-        ItemController itemController = item.GetComponent<ItemController>();
-        itemInInventory = itemController.itemType;
-        Sprite s = ItemController.spriteForItemType(itemController.itemType);
+    public void setCurrentItemInInventory(ItemController.Type type) {
+        itemInInventory = type;
+        Sprite s = ItemController.spriteForItemType(type);
         itemInventoryImage.sprite = s;
     }
     

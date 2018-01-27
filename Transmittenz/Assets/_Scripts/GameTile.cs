@@ -9,10 +9,11 @@ using UnityEditor;
 
 public class GameTile : Tile {
     public enum Type {
-        None, Obstacle, Ladder
+        None, Obstacle, Ladder, Console, Station
     };
     
     public Type type = Type.None;
+    public int something;
     
 #if UNITY_EDITOR
         [MenuItem("Assets/Create/Game Tile")]

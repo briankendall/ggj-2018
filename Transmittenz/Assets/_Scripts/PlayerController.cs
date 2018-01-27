@@ -112,13 +112,6 @@ public class PlayerController : MonoBehaviour {
             state.velocity.x = Mathf.Min(state.velocity.x + kHorizontalAccel*Time.deltaTime, targetVelocityX);
         }
         
-        if (state.inputJump && !previousState.inputJump) {
-            if (controller.isGrounded) {
-                jump();
-                applyGravity = false;
-            }
-        }
-        
         if (!controller.isGrounded) {
             if (state.inputJump && Time.time < state.jumpMaxVelocityEndTime) {
                 applyGravity = false;
@@ -221,13 +214,14 @@ public class PlayerController : MonoBehaviour {
         
         GameObject item = LevelController.get().itemOverlappingBounds(boxCollider.bounds);
         
-        if (item) {
-            LevelController.get().setCurrentItemInInventory(item);
+        if (LevelController.get().itemInInventory == ItemController.Type.None && item) {
+            ItemController itemController = item.GetComponent<ItemController>();
+            LevelController.get().setCurrentItemInInventory(itemController.itemType);
             Destroy(item);
             return;
         }
         
-        Debug.Log("Not intersecting anything interactable");
+        Debug.Log("Can't interact");
     }
     
     void dropItem() {
@@ -249,6 +243,32 @@ public class PlayerController : MonoBehaviour {
                                                              boxCollider.bounds.center,
                                                              itemVelocity);
         LevelController.get().clearItemInInventory();
+    }
+    
+    void useItem() {
+        if (LevelController.get().itemInInventory == ItemController.Type.None) {
+            Debug.Log("No item!");
+            return;
+        }
+        
+        if (LevelController.get().itemInInventory == ItemController.Type.RedHerring) {
+            eatHerring();
+            return;
+        }
+        
+        if (LevelController.get().itemInInventory == ItemController.Type.GravityMittens) {
+            jump();
+            return;
+        }
+        
+        if (LevelController.get().itemInInventory == ItemController.Type.EatenRedHerring) {
+            Debug.Log("Meow!");
+            return;
+        }
+    }
+    
+    void eatHerring() {
+        LevelController.get().setCurrentItemInInventory(ItemController.Type.EatenRedHerring);
     }
     
 	// Update is called once per frame
@@ -277,6 +297,10 @@ public class PlayerController : MonoBehaviour {
         
         if (state.inputDrop && !previousState.inputDrop) {
             dropItem();
+        }
+        
+        if (state.inputJump && !previousState.inputJump) {
+            useItem();
         }
         
         previousState.isGrounded = controller.isGrounded;
