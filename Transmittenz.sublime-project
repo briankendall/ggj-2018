@@ -1,0 +1,20 @@
+{
+    "folders":
+    [
+        {
+            "follow_symlinks": true,
+            "path": "Transmittenz/Assets",
+            "file_exclude_patterns":
+            [
+                "*.dll",
+                "*.meta",
+                "*.csproj",
+                "*.booproj",
+                "*.unityproj",
+                "*.controller",
+                "*.anim"
+            ]
+        }
+    ],
+    "solution_file": "./Transmittenz/MusicPlatformer.sln"
+}
