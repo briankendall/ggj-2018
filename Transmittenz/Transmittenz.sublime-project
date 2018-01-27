@@ -3,7 +3,7 @@
     [
         {
             "follow_symlinks": true,
-            "path": "Transmittenz/Assets",
+            "path": "Assets",
             "file_exclude_patterns":
             [
                 "*.dll",
@@ -16,5 +16,5 @@
             ]
         }
     ],
-    "solution_file": "./Transmittenz/MusicPlatformer.sln"
+    "solution_file": "./Transmittenz.sln"
 }
