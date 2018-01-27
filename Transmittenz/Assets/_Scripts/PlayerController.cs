@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour {
     
     
     GameTile tileAtWorldPosition(Vector3 pos) {
-        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(pos);
+        Vector2Int tilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(pos));
         return LevelController.get().levelTileAtTilePosition(tilePos);
     }
     
@@ -152,19 +152,19 @@ public class PlayerController : MonoBehaviour {
         GameTile leftTile, rightTile;
         Vector3 leftTilePos = Vector3.zero, rightTilePos = Vector3.zero;
         
-        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(playerWorldPosition());
-        leftTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
-        rightTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+        Vector2Int tilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(playerWorldPosition()));
+        leftTile = LevelController.get().levelTileAtTilePosition(new Vector2Int(tilePos.x-1, tilePos.y));
+        rightTile = LevelController.get().levelTileAtTilePosition(new Vector2Int(tilePos.x+1, tilePos.y));
         
         if ((leftTile && leftTile.type == GameTile.Type.Ladder) && (rightTile && rightTile.type == GameTile.Type.Ladder)) {
             state.climbingTargetX = transform.localPosition.x;
             
         } else if (leftTile && leftTile.type == GameTile.Type.Ladder) {
-            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
-            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x-1, tilePos.y, 0));
+            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+1, tilePos.y, 0));
         } else {
-            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x, tilePos.y, tilePos.z));
-            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+2, tilePos.y, tilePos.z));
+            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x, tilePos.y, 0));
+            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+2, tilePos.y, 0));
         }
         
         state.climbingTargetX = (leftTilePos.x + rightTilePos.x) / 2f;
@@ -209,6 +209,8 @@ public class PlayerController : MonoBehaviour {
         state.isClimbing = false;
     }
     
+    
+    
     void performAction() {
         Vector3 actionPos = transform.localPosition;
         
@@ -218,6 +220,14 @@ public class PlayerController : MonoBehaviour {
             ItemController itemController = item.GetComponent<ItemController>();
             LevelController.get().setCurrentItemInInventory(itemController.itemType);
             Destroy(item);
+            return;
+        }
+        
+        Vector2Int interactableTilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(playerWorldPosition()));
+        GameTile interactableTile = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
+        
+        if (interactableTile && interactableTile.type == GameTile.Type.Console) {
+            LevelController.get().activateConsole(interactableTilePos);
             return;
         }
         

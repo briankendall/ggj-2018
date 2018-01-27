@@ -33,5 +33,5 @@ MonoBehaviour:
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 1
   m_ColliderType: 1
-  type: 0
+  type: 3
   something: 0

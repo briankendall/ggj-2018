@@ -8,6 +8,7 @@ TagManager:
   - itemsTilemap
   - item
   - interactablesTilemap
+  - linkersTilemap
   layers:
   - Default
   - TransparentFX
