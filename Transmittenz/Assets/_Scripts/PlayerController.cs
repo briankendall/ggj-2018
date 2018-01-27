@@ -13,8 +13,6 @@ public class PlayerController : MonoBehaviour {
 
     float kMaxHorizontalSpeed = 6.0f;
     float kHorizontalAccel = 20f;
-    float kMaxVerticalSpeed = 7f;
-    float kGravity = -30f;
     
     // Jumping
     float kJumpInitialVerticalVelocity = 7f;
@@ -26,6 +24,10 @@ public class PlayerController : MonoBehaviour {
     float kClimbVerticalDecel = 50f;
     float kClimbHorizontalAdjustVelocity = 0.8f;
     
+    // Dropping item
+    float kDropItemHorizontalVelocity = 2f;
+    float kDropItemVerticalVelocity = 12f;
+    
     
     struct PlayerState {
         public float inputX;
@@ -34,6 +36,7 @@ public class PlayerController : MonoBehaviour {
         public bool inputJump;
         public bool inputAction;
         public bool inputReset;
+        public bool inputDrop;
         public bool isGrounded;
         public Vector2 velocity;
         public float jumpMaxVelocityEndTime;
@@ -48,6 +51,7 @@ public class PlayerController : MonoBehaviour {
             result.inputJump = false;
             result.inputAction = false;
             result.inputReset = false;
+            result.inputDrop = false;
             result.isGrounded = false;
             result.direction = kDirectionRight;
             result.velocity = Vector2.zero;
@@ -59,7 +63,6 @@ public class PlayerController : MonoBehaviour {
         }
     };
     
-    public Tilemap tilemap;
     CharacterController2D controller;
     PlayerState state, previousState;
     BoxCollider2D boxCollider;
@@ -75,13 +78,10 @@ public class PlayerController : MonoBehaviour {
         return boxCollider.bounds.center;
     }
     
-    GameTile tileAtTilePosition(Vector3Int tilePos) {
-        return (GameTile)tilemap.GetTile(tilePos);
-    }
     
     GameTile tileAtWorldPosition(Vector3 pos) {
-        Vector3Int tilePos = tilemap.WorldToCell(pos);
-        return tileAtTilePosition(tilePos);
+        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(pos);
+        return LevelController.get().levelTileAtTilePosition(tilePos);
     }
     
     GameTile.Type tileTypeAtPlayerPosition() {
@@ -126,10 +126,10 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (applyGravity) {
-            state.velocity.y += kGravity * Time.deltaTime;
+            state.velocity.y += Constants.gravity * Time.deltaTime;
         }
         
-        state.velocity.y = Mathf.Clamp(state.velocity.y, -kMaxVerticalSpeed, kMaxVerticalSpeed);
+        state.velocity.y = Mathf.Clamp(state.velocity.y, -Constants.maxVerticalSpeed, Constants.maxVerticalSpeed);
     }
     
     bool isStartingClimbing() {
@@ -159,19 +159,19 @@ public class PlayerController : MonoBehaviour {
         GameTile leftTile, rightTile;
         Vector3 leftTilePos = Vector3.zero, rightTilePos = Vector3.zero;
         
-        Vector3Int tilePos = tilemap.WorldToCell(playerWorldPosition());
-        leftTile = tileAtTilePosition(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
-        rightTile = tileAtTilePosition(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(playerWorldPosition());
+        leftTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
+        rightTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
         
         if ((leftTile && leftTile.type == GameTile.Type.Ladder) && (rightTile && rightTile.type == GameTile.Type.Ladder)) {
             state.climbingTargetX = transform.localPosition.x;
             
         } else if (leftTile && leftTile.type == GameTile.Type.Ladder) {
-            leftTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
-            rightTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
+            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
         } else {
-            leftTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x, tilePos.y, tilePos.z));
-            rightTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x+2, tilePos.y, tilePos.z));
+            leftTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x, tilePos.y, tilePos.z));
+            rightTilePos = LevelController.get().levelTilemap.CellToWorld(new Vector3Int(tilePos.x+2, tilePos.y, tilePos.z));
         }
         
         state.climbingTargetX = (leftTilePos.x + rightTilePos.x) / 2f;
@@ -216,6 +216,41 @@ public class PlayerController : MonoBehaviour {
         state.isClimbing = false;
     }
     
+    void performAction() {
+        Vector3 actionPos = transform.localPosition;
+        
+        GameObject item = LevelController.get().itemOverlappingBounds(boxCollider.bounds);
+        
+        if (item) {
+            LevelController.get().setCurrentItemInInventory(item);
+            Destroy(item);
+            return;
+        }
+        
+        Debug.Log("Not intersecting anything interactable");
+    }
+    
+    void dropItem() {
+        Debug.Log("Drop!");
+        if (LevelController.get().itemInInventory == ItemController.Type.None) {
+            Debug.Log("No item!");
+            return;
+        }
+        
+        Vector2 itemVelocity;
+        
+        if (state.direction == kDirectionRight) {
+            itemVelocity = new Vector3(-kDropItemHorizontalVelocity, kDropItemVerticalVelocity);
+        } else {
+            itemVelocity = new Vector3(kDropItemHorizontalVelocity, kDropItemVerticalVelocity);
+        }
+        
+        LevelController.get().spawnItemAtPositionAndVelocity(LevelController.get().itemInInventory,
+                                                             boxCollider.bounds.center,
+                                                             itemVelocity);
+        LevelController.get().clearItemInInventory();
+    }
+    
 	// Update is called once per frame
 	void FixedUpdate () {
         state.inputX = Input.GetAxis("Horizontal");
@@ -223,11 +258,8 @@ public class PlayerController : MonoBehaviour {
         state.inputJump = (Input.GetAxis("Jump") > 0.0);
         state.inputAction = (Input.GetAxis("Action") > 0.0);
         state.inputReset = (Input.GetAxis("Reset") > 0.0);
+        state.inputDrop = (Input.GetAxis("Drop") > 0.0);
         state.isGrounded = controller.isGrounded;
-        
-        if (state.inputAction && !previousState.inputAction) {
-            Debug.Log("tile type: " + tileTypeAtPlayerPosition());
-        }
         
         if (!state.isClimbing && isStartingClimbing()) {
             startClimbing();
@@ -237,6 +269,14 @@ public class PlayerController : MonoBehaviour {
             processClimbing();
         } else {
             processNormalMovement();
+        }
+        
+        if (state.inputAction && !previousState.inputAction) {
+            performAction();
+        }
+        
+        if (state.inputDrop && !previousState.inputDrop) {
+            dropItem();
         }
         
         previousState.isGrounded = controller.isGrounded;
