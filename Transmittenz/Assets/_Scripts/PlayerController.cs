@@ -15,8 +15,17 @@ public class PlayerController : MonoBehaviour {
     float kHorizontalAccel = 20f;
     float kMaxVerticalSpeed = 7f;
     float kGravity = -30f;
+    
+    // Jumping
     float kJumpInitialVerticalVelocity = 7f;
     float kJumpMaxSpeedDuration = 0.30f;
+    
+    // Climbing
+    float kClimbMaxVerticalSpeed = 4f;
+    float kClimbVerticalAccel = 18f;
+    float kClimbVerticalDecel = 50f;
+    float kClimbHorizontalAdjustVelocity = 0.8f;
+    
     
     struct PlayerState {
         public float inputX;
@@ -26,9 +35,11 @@ public class PlayerController : MonoBehaviour {
         public bool inputAction;
         public bool inputReset;
         public bool isGrounded;
-        
         public Vector2 velocity;
         public float jumpMaxVelocityEndTime;
+        
+        public bool isClimbing;
+        public float climbingTargetX;
         
         public static PlayerState initialPlayerState() {
             PlayerState result;
@@ -41,14 +52,17 @@ public class PlayerController : MonoBehaviour {
             result.direction = kDirectionRight;
             result.velocity = Vector2.zero;
             result.jumpMaxVelocityEndTime = 0;
+            result.isClimbing = false;
+            result.climbingTargetX = 0f;
             
             return result;
         }
     };
     
+    public Tilemap tilemap;
     CharacterController2D controller;
-    BoxCollider2D boxCollider;
     PlayerState state, previousState;
+    BoxCollider2D boxCollider;
     
 	// Use this for initialization
 	void Start () {
@@ -57,6 +71,24 @@ public class PlayerController : MonoBehaviour {
         previousState = PlayerState.initialPlayerState();
 	}
 	
+    Vector3 playerWorldPosition() {
+        return boxCollider.bounds.center;
+    }
+    
+    GameTile tileAtTilePosition(Vector3Int tilePos) {
+        return (GameTile)tilemap.GetTile(tilePos);
+    }
+    
+    GameTile tileAtWorldPosition(Vector3 pos) {
+        Vector3Int tilePos = tilemap.WorldToCell(pos);
+        return tileAtTilePosition(tilePos);
+    }
+    
+    GameTile.Type tileTypeAtPlayerPosition() {
+        GameTile tile = tileAtWorldPosition(playerWorldPosition());
+        return tile ? tile.type : GameTile.Type.None;
+    }
+    
     void jump() {
         state.jumpMaxVelocityEndTime = Time.time + kJumpMaxSpeedDuration;
         state.velocity.y = kJumpInitialVerticalVelocity;
@@ -100,6 +132,90 @@ public class PlayerController : MonoBehaviour {
         state.velocity.y = Mathf.Clamp(state.velocity.y, -kMaxVerticalSpeed, kMaxVerticalSpeed);
     }
     
+    bool isStartingClimbing() {
+        if (state.inputY == 0) {
+            return false;
+        }
+        
+        GameTile.Type tileType = tileTypeAtPlayerPosition();
+        
+        if (tileType == GameTile.Type.Ladder && !(state.isGrounded && state.inputY < 0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    bool aboutToReachEndOfLadder() {
+        GameTile nextTile = tileAtWorldPosition(playerWorldPosition() + ((Vector3)state.velocity) * Time.deltaTime);
+        return !nextTile || nextTile.type != GameTile.Type.Ladder;
+    }
+    
+    void startClimbing() {
+        state.isClimbing = true;
+        state.velocity.x = 0f;
+        state.velocity.y = 0f;
+        
+        GameTile leftTile, rightTile;
+        Vector3 leftTilePos = Vector3.zero, rightTilePos = Vector3.zero;
+        
+        Vector3Int tilePos = tilemap.WorldToCell(playerWorldPosition());
+        leftTile = tileAtTilePosition(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
+        rightTile = tileAtTilePosition(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+        
+        if ((leftTile && leftTile.type == GameTile.Type.Ladder) && (rightTile && rightTile.type == GameTile.Type.Ladder)) {
+            state.climbingTargetX = transform.localPosition.x;
+            
+        } else if (leftTile && leftTile.type == GameTile.Type.Ladder) {
+            leftTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x-1, tilePos.y, tilePos.z));
+            rightTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x+1, tilePos.y, tilePos.z));
+        } else {
+            leftTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x, tilePos.y, tilePos.z));
+            rightTilePos = tilemap.CellToWorld(new Vector3Int(tilePos.x+2, tilePos.y, tilePos.z));
+        }
+        
+        state.climbingTargetX = (leftTilePos.x + rightTilePos.x) / 2f;
+    }
+    
+    void processClimbing() {
+        if (state.inputJump && !previousState.inputJump) {
+            state.isClimbing = false;
+            return;
+        }
+        
+        if (state.inputY > 0) {
+            state.velocity.y += kClimbVerticalAccel * Time.deltaTime;
+        } else if (state.inputY < 0) {
+            state.velocity.y -= kClimbVerticalAccel * Time.deltaTime;
+        } else {
+            if (state.velocity.y > 0) {
+                state.velocity.y = Mathf.Max(state.velocity.y - kClimbVerticalDecel, 0f);
+            } else if (state.velocity.y < 0) {
+                state.velocity.y = Mathf.Min(state.velocity.y + kClimbVerticalDecel, 0f);
+            }
+        }
+        
+        state.velocity.y = Mathf.Clamp(state.velocity.y, -kClimbMaxVerticalSpeed, kClimbMaxVerticalSpeed);
+        
+        if (transform.localPosition.x < state.climbingTargetX) {
+            transform.localPosition = new Vector3(Mathf.Min(transform.localPosition.x + kClimbHorizontalAdjustVelocity * Time.deltaTime,
+                                                            state.climbingTargetX),
+                                                  transform.localPosition.y, transform.localPosition.z);
+        } else if (transform.localPosition.x > state.climbingTargetX) {
+            transform.localPosition = new Vector3(Mathf.Max(transform.localPosition.x - kClimbHorizontalAdjustVelocity * Time.deltaTime,
+                                                            state.climbingTargetX),
+                                                  transform.localPosition.y, transform.localPosition.z);
+        }
+        
+        if (aboutToReachEndOfLadder()) {
+            state.velocity.y = 0f;
+        }
+    }
+    
+    void landedOnGround() {
+        state.isClimbing = false;
+    }
+    
 	// Update is called once per frame
 	void FixedUpdate () {
         state.inputX = Input.GetAxis("Horizontal");
@@ -109,13 +225,29 @@ public class PlayerController : MonoBehaviour {
         state.inputReset = (Input.GetAxis("Reset") > 0.0);
         state.isGrounded = controller.isGrounded;
         
-        processNormalMovement();
+        if (state.inputAction && !previousState.inputAction) {
+            Debug.Log("tile type: " + tileTypeAtPlayerPosition());
+        }
+        
+        if (!state.isClimbing && isStartingClimbing()) {
+            startClimbing();
+        }
+        
+        if (state.isClimbing) {
+            processClimbing();
+        } else {
+            processNormalMovement();
+        }
         
         previousState.isGrounded = controller.isGrounded;
         controller.move(state.velocity * Time.fixedDeltaTime);
         
         if (controller.collisionState.left || controller.collisionState.right) {
             state.velocity.x = 0f;
+        }
+        
+        if (controller.isGrounded && !state.isGrounded) {
+            landedOnGround();
         }
         
         previousState = state;
