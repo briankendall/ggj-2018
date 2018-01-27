@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour {
     
     
     GameTile tileAtWorldPosition(Vector3 pos) {
-        Vector2Int tilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(pos));
+        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(pos);
         return LevelController.get().levelTileAtTilePosition(tilePos);
     }
     
@@ -152,9 +152,9 @@ public class PlayerController : MonoBehaviour {
         GameTile leftTile, rightTile;
         Vector3 leftTilePos = Vector3.zero, rightTilePos = Vector3.zero;
         
-        Vector2Int tilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(playerWorldPosition()));
-        leftTile = LevelController.get().levelTileAtTilePosition(new Vector2Int(tilePos.x-1, tilePos.y));
-        rightTile = LevelController.get().levelTileAtTilePosition(new Vector2Int(tilePos.x+1, tilePos.y));
+        Vector3Int tilePos = LevelController.get().levelTilemap.WorldToCell(playerWorldPosition());
+        leftTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x-1, tilePos.y, 0));
+        rightTile = LevelController.get().levelTileAtTilePosition(new Vector3Int(tilePos.x+1, tilePos.y, 0));
         
         if ((leftTile && leftTile.type == GameTile.Type.Ladder) && (rightTile && rightTile.type == GameTile.Type.Ladder)) {
             state.climbingTargetX = transform.localPosition.x;
@@ -209,7 +209,9 @@ public class PlayerController : MonoBehaviour {
         state.isClimbing = false;
     }
     
-    
+    //GameTile findInteractableTile() {
+    //    
+    //}
     
     void performAction() {
         Vector3 actionPos = transform.localPosition;
@@ -223,7 +225,7 @@ public class PlayerController : MonoBehaviour {
             return;
         }
         
-        Vector2Int interactableTilePos = misc.convert3ito2i(LevelController.get().levelTilemap.WorldToCell(playerWorldPosition()));
+        Vector3Int interactableTilePos = LevelController.get().levelTilemap.WorldToCell(playerWorldPosition());
         GameTile interactableTile = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
         
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {

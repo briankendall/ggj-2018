@@ -18,16 +18,16 @@ public class LevelController : MonoBehaviour {
     public Image itemInventoryImage;
     public ItemController.Type itemInInventory;
 
-    Dictionary<Vector2Int, LinkData> links;
+    Dictionary<Vector3Int, LinkData> links;
 
     struct LinkData {
-        public List<Vector2Int> sources;
-        public List<Vector2Int> dests;
+        public List<Vector3Int> sources;
+        public List<Vector3Int> dests;
         
         public static LinkData createEmpty() {
             LinkData result;
-            result.sources = new List<Vector2Int>();
-            result.dests = new List<Vector2Int>();
+            result.sources = new List<Vector3Int>();
+            result.dests = new List<Vector3Int>();
             return result;
         }
     };
@@ -57,15 +57,15 @@ public class LevelController : MonoBehaviour {
     void Start () {
         for(int x = 0; x < itemsTilemap.size.x; ++x) {
             for(int y = 0; y < itemsTilemap.size.y; ++y) {
-                Vector2Int tilePos = new Vector2Int(x + itemsTilemap.origin.x, y + itemsTilemap.origin.y);
-                Sprite sprite = itemsTilemap.GetSprite(misc.convert2ito3i(tilePos));
+                Vector3Int tilePos = new Vector3Int(x + itemsTilemap.origin.x, y + itemsTilemap.origin.y, 0);
+                Sprite sprite = itemsTilemap.GetSprite(tilePos);
                 
                 if (!sprite) {
                     continue;
                 }
                 
-                itemsTilemap.SetTile(misc.convert2ito3i(tilePos), null);
-                Vector3 pos = itemsTilemap.CellToWorld(misc.convert2ito3i(tilePos));
+                itemsTilemap.SetTile(tilePos, null);
+                Vector3 pos = itemsTilemap.CellToWorld(tilePos);
                 spawnItemAtPositionAndVelocity(ItemController.stringToType(sprite.name), pos, Vector2.zero);
             }
         }
@@ -73,15 +73,15 @@ public class LevelController : MonoBehaviour {
         buildLinksData();
     }
     
-    static public GameTile tileAtTilePosition(Tilemap map, Vector2Int tilePos) {
-        return (GameTile)map.GetTile(misc.convert2ito3i(tilePos));
+    static public GameTile tileAtTilePosition(Tilemap map, Vector3Int tilePos) {
+        return (GameTile)map.GetTile(tilePos);
     }
     
-    public GameTile levelTileAtTilePosition(Vector2Int tilePos) {
+    public GameTile levelTileAtTilePosition(Vector3Int tilePos) {
         return tileAtTilePosition(levelTilemap, tilePos);
     }
     
-    public GameTile interactableTileAtTilePosition(Vector2Int tilePos) {
+    public GameTile interactableTileAtTilePosition(Vector3Int tilePos) {
         return tileAtTilePosition(levelTilemap, tilePos);
     }
     
@@ -137,16 +137,16 @@ public class LevelController : MonoBehaviour {
     
     void buildLinksData() {
         bool tileLastTime = false;
-        Vector2Int lastTilePos = new Vector2Int();
+        Vector3Int lastTilePos = new Vector3Int();
         
-        links = new Dictionary<Vector2Int, LinkData>();
+        links = new Dictionary<Vector3Int, LinkData>();
         
-        Dictionary<string, List<Vector2Int> > sources = new Dictionary<string, List<Vector2Int> >();
-        Dictionary<string, List<Vector2Int> > dests = new Dictionary<string, List<Vector2Int> >();
+        Dictionary<string, List<Vector3Int> > sources = new Dictionary<string, List<Vector3Int> >();
+        Dictionary<string, List<Vector3Int> > dests = new Dictionary<string, List<Vector3Int> >();
         
         for(int y = 0; y < linkersTilemap.size.y; ++y) {
             for(int x = 0; x < linkersTilemap.size.x; ++x) {
-                Vector2Int tilePos = new Vector2Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y);
+                Vector3Int tilePos = new Vector3Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y, 0);
                 Vector3Int asdfafergfergre = new Vector3Int(tilePos.x, tilePos.y, 0);
                 Sprite sprite = linkersTilemap.GetSprite(asdfafergfergre);
                 //Debug.Log("tilePos: " + tilePos);
@@ -158,7 +158,7 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 string id = linkerIdForTileName(sprite.name);
-                Dictionary<string, List<Vector2Int> > relevant;
+                Dictionary<string, List<Vector3Int> > relevant;
                 
                 //Debug.Log(sprite.name);
                 if (linkerTileNameIndicatesDest(sprite.name)) {
@@ -170,7 +170,7 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 if (!relevant.ContainsKey(id)) {
-                    relevant[id] = new List<Vector2Int>();
+                    relevant[id] = new List<Vector3Int>();
                 }
                 
                 if (!tileLastTime) {
@@ -184,7 +184,7 @@ public class LevelController : MonoBehaviour {
         }
         
         foreach(string id in sources.Keys) {
-            foreach(Vector2Int srcPos in sources[id]) {
+            foreach(Vector3Int srcPos in sources[id]) {
                 if (!links.ContainsKey(srcPos)) {
                     links[srcPos] = LinkData.createEmpty();
                 }
@@ -196,7 +196,7 @@ public class LevelController : MonoBehaviour {
         }
         
         foreach(string id in dests.Keys) {
-            foreach(Vector2Int dstPos in dests[id]) {
+            foreach(Vector3Int dstPos in dests[id]) {
                 if (!links.ContainsKey(dstPos)) {
                     links[dstPos] = LinkData.createEmpty();
                 }
@@ -210,23 +210,23 @@ public class LevelController : MonoBehaviour {
         /*
         Debug.Log("links:");
         
-        foreach(Vector2Int pos in links.Keys) {
+        foreach(Vector3Int pos in links.Keys) {
             Debug.Log("  pos: " + pos);
             Debug.Log("  sources:");
             
-            foreach(Vector2Int src in links[pos].sources) {
+            foreach(Vector3Int src in links[pos].sources) {
                 Debug.Log("    " + src);
             }
             Debug.Log("  dests:");
             
-            foreach(Vector2Int dst in links[pos].dests) {
+            foreach(Vector3Int dst in links[pos].dests) {
                 Debug.Log("    " + dst);
             }
         }
         */
     }
 	
-    Vector2Int findUpperLeftOfInteractable(Vector2Int pos) {
+    Vector3Int findUpperLeftOfInteractable(Vector3Int pos) {
         while(interactableTileAtTilePosition(pos) != null) {
             pos.x -= 1;
         }
@@ -235,12 +235,12 @@ public class LevelController : MonoBehaviour {
             pos.y -= 1;
         }
         
-        return new Vector2Int(pos.x+1, pos.y+1);
+        return new Vector3Int(pos.x+1, pos.y+1, 0);
     }
     
     
-    public void activateConsole(Vector2Int initialConsoleTilePos) {
-        Vector2Int consoleTilePos = findUpperLeftOfInteractable(initialConsoleTilePos);
+    public void activateConsole(Vector3Int initialConsoleTilePos) {
+        Vector3Int consoleTilePos = findUpperLeftOfInteractable(initialConsoleTilePos);
         
         Debug.Log("actual console pos: " + consoleTilePos);
     }
