@@ -317,7 +317,7 @@ public class PlayerController : MonoBehaviour {
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);
             animator.Play("pushButtons");
-            LevelController.get().playSound("meow");
+            //LevelController.get().playSound("meow");
             return;
         }
         
@@ -414,7 +414,9 @@ public class PlayerController : MonoBehaviour {
                 vel.x *= -1f;
             }
             
-            LevelController.get().spawnMouseGrenade(playerWorldPosition(), rot, vel);
+            Vector3 pos = playerWorldPosition();
+            pos.z = -1;
+            LevelController.get().spawnMouseGrenade(pos, rot, vel);
         }));
     }
     

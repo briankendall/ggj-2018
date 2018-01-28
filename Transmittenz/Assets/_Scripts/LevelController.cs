@@ -725,6 +725,7 @@ public class LevelController : MonoBehaviour {
     
     public void resetLevel() {
         playSound("Warning Klaxons");
+        playSound("meow");
         exploding = true;
         
         StartCoroutine(Timer.create(2.0f, () => {
@@ -816,12 +817,18 @@ public class LevelController : MonoBehaviour {
     }
     
     void powerWires() {
+        HashSet<Vector3Int> shitToTrigger = new HashSet<Vector3Int>();
+        
         foreach(Vector3Int powerSourcePos in wirePowerSources) {
-            recursivelyPowerWires(powerSourcePos + new Vector3Int(0, 1, 0), kDirectionUp);
+            recursivelyPowerWires(powerSourcePos + new Vector3Int(0, 1, 0), kDirectionUp, shitToTrigger);
+        }
+        
+        foreach(Vector3Int pos in shitToTrigger) {
+            triggerInteractableSource(pos, false);
         }
     }
     
-    void recursivelyPowerWires(Vector3Int wirePos, int travelDirection) {
+    void recursivelyPowerWires(Vector3Int wirePos, int travelDirection, HashSet<Vector3Int> shitToTrigger) {
         //Debug.Log("recursivelyPowerWires: " + wirePos);
         GameTile tile = (GameTile)wiresTilemap.GetTile(wirePos);
         
@@ -857,24 +864,25 @@ public class LevelController : MonoBehaviour {
         wiresTilemap.SetTile(wirePos, unpoweredToPowered(tile));
         
         if (tile.type == GameTile.Type.WirePowerReceiver) {
-            triggerInteractableSource(wirePos, false);
+            //triggerInteractableSource(wirePos, false);
+            shitToTrigger.Add(wirePos);
             
         } else {
         
             if (tile.wireLeft) {
-                recursivelyPowerWires(wirePos + new Vector3Int(-1, 0, 0), kDirectionLeft);
+                recursivelyPowerWires(wirePos + new Vector3Int(-1, 0, 0), kDirectionLeft, shitToTrigger);
             }
             
             if (tile.wireRight) {
-                recursivelyPowerWires(wirePos + new Vector3Int(1, 0, 0), kDirectionRight);
+                recursivelyPowerWires(wirePos + new Vector3Int(1, 0, 0), kDirectionRight, shitToTrigger);
             }
             
             if (tile.wireUp) {
-                recursivelyPowerWires(wirePos + new Vector3Int(0, 1, 0), kDirectionUp);
+                recursivelyPowerWires(wirePos + new Vector3Int(0, 1, 0), kDirectionUp, shitToTrigger);
             }
             
             if (tile.wireDown) {
-                recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown);
+                recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown, shitToTrigger);
             }
         }
     }
