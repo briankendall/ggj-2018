@@ -17,12 +17,14 @@ public class LevelController : MonoBehaviour {
     public Tilemap linkersTilemap;
     public Image itemInventoryImage;
     public ItemController.Type itemInInventory;
+    public Tile[] openPanelTiles;
+    public GameObject openPanelAnimationObject;
     
     public GameTile lightOnTile;
     public GameTile lightOffTile;
 
     Dictionary<Vector3Int, LinkData> links;
-
+    
     struct LinkData {
         public List<Vector3Int> sources;
         public List<Vector3Int> dests;
@@ -74,6 +76,7 @@ public class LevelController : MonoBehaviour {
         }
         
         buildLinksData();
+        linkersTilemapGameObject.SetActive(false);
     }
     
     static public GameTile tileAtTilePosition(Tilemap map, Vector3Int tilePos) {
@@ -274,7 +277,22 @@ public class LevelController : MonoBehaviour {
             return;
         }
         
+        if (tile.type == GameTile.Type.Panel) {
+            togglePanel(tile, p);
+            return;
+        }
+        
         Debug.Log("Error! Tried to toggle invalid interactable!");
+    }
+    
+    bool interactableSourceIsOn(Vector3Int p) {
+        GameTile tile = interactableTileAtTilePosition(p);
+        
+        if (tile.type == GameTile.Type.Light) {
+            return tile == lightOnTile;
+        }
+        
+        return true;
     }
     
     void toggleLight(GameTile tile, Vector3Int p) {
@@ -291,4 +309,19 @@ public class LevelController : MonoBehaviour {
         triggerInteractableSource(p, true);
     }
     
+    void togglePanel(GameTile tile, Vector3Int pos) {
+        foreach(Vector3Int p in links[pos].sources) {
+            if (!interactableSourceIsOn(p)) {
+                return;
+            }
+        }
+        
+        interactablesTilemap.SetTile(pos, openPanelTiles[0]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(1, 0, 0), openPanelTiles[1]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(0, -1, 0), openPanelTiles[2]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(1, -1, 0), openPanelTiles[3]);
+        
+        Vector3 animatonPos = interactablesTilemap.CellToWorld(pos);
+        Instantiate(openPanelAnimationObject, animatonPos, Quaternion.identity);
+    }
 }
