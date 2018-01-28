@@ -209,9 +209,37 @@ public class PlayerController : MonoBehaviour {
         state.isClimbing = false;
     }
     
-    //GameTile findInteractableTile() {
-    //    
-    //}
+    void findInteractableTile(ref GameTile result, ref Vector3Int resultPos) {
+        Vector3Int interactableTilePos;
+        
+        for(float y = boxCollider.bounds.min.y; y < boxCollider.bounds.max.y; y += Constants.tileSize) {
+            for(float x = boxCollider.bounds.min.x; x < boxCollider.bounds.max.x; x += Constants.tileSize) {
+                interactableTilePos = LevelController.get().levelTilemap.WorldToCell(new Vector3(x, y, 0));
+                result = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
+                
+                if (result) {
+                    resultPos = interactableTilePos;
+                    return;
+                }
+            }
+            
+            interactableTilePos = LevelController.get().levelTilemap.WorldToCell(new Vector3(boxCollider.bounds.max.x, y, 0));
+            result = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
+            
+            if (result) {
+                resultPos = interactableTilePos;
+                return;
+            }
+        }
+        
+        interactableTilePos = LevelController.get().levelTilemap.WorldToCell(new Vector3(boxCollider.bounds.max.x,
+                                                                                         boxCollider.bounds.max.y, 0));
+        result = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
+        
+        if (result) {
+            resultPos = interactableTilePos;
+        }
+    }
     
     void performAction() {
         Vector3 actionPos = transform.localPosition;
@@ -225,8 +253,10 @@ public class PlayerController : MonoBehaviour {
             return;
         }
         
-        Vector3Int interactableTilePos = LevelController.get().levelTilemap.WorldToCell(playerWorldPosition());
-        GameTile interactableTile = LevelController.get().interactableTileAtTilePosition(interactableTilePos);
+        GameTile interactableTile = null;
+        Vector3Int interactableTilePos = new Vector3Int();
+        
+        findInteractableTile(ref interactableTile, ref interactableTilePos);
         
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);

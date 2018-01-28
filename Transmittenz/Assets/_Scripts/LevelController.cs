@@ -17,6 +17,9 @@ public class LevelController : MonoBehaviour {
     public Tilemap linkersTilemap;
     public Image itemInventoryImage;
     public ItemController.Type itemInInventory;
+    
+    public GameTile lightOnTile;
+    public GameTile lightOffTile;
 
     Dictionary<Vector3Int, LinkData> links;
 
@@ -82,7 +85,7 @@ public class LevelController : MonoBehaviour {
     }
     
     public GameTile interactableTileAtTilePosition(Vector3Int tilePos) {
-        return tileAtTilePosition(levelTilemap, tilePos);
+        return tileAtTilePosition(interactablesTilemap, tilePos);
     }
     
     public GameObject itemOverlappingBounds(Bounds bounds) {
@@ -241,8 +244,51 @@ public class LevelController : MonoBehaviour {
     
     public void activateConsole(Vector3Int initialConsoleTilePos) {
         Vector3Int consoleTilePos = findUpperLeftOfInteractable(initialConsoleTilePos);
+        triggerInteractableSource(consoleTilePos, false);
+    }
+    
+    void triggerInteractableSource(Vector3Int srcPos, bool okayIfNotLinked) {
+        if (!links.ContainsKey(srcPos)) {
+            if (!okayIfNotLinked) {
+                Debug.Log("Error! Non-linked source interactable!!");
+            }
+            
+            return;
+        }
         
-        Debug.Log("actual console pos: " + consoleTilePos);
+        foreach(Vector3Int p in links[srcPos].dests) {
+            toggleInteractable(p);
+        }
+    }
+    
+    void toggleInteractable(Vector3Int p) {
+        GameTile tile = interactableTileAtTilePosition(p);
+        
+        if (!tile) {
+            Debug.Log("Error! Tried to toggle non-existent interactable at: " + p);
+            return;
+        }
+        
+        if (tile.type == GameTile.Type.Light) {
+            toggleLight(tile, p);
+            return;
+        }
+        
+        Debug.Log("Error! Tried to toggle invalid interactable!");
+    }
+    
+    void toggleLight(GameTile tile, Vector3Int p) {
+        Debug.Log("Toggling light!");
+        
+        if (tile == lightOnTile) {
+            Debug.Log("  off!");
+            interactablesTilemap.SetTile(p, lightOffTile);
+        } else {
+            Debug.Log("  on!");
+            interactablesTilemap.SetTile(p, lightOnTile);
+        }
+        
+        triggerInteractableSource(p, true);
     }
     
 }
