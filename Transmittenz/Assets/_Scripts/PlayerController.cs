@@ -175,7 +175,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     void processClimbing() {
-        if (state.inputJump && !previousState.inputJump) {
+        if (state.inputX != 0 && previousState.inputX == 0) {
             state.isClimbing = false;
             return;
         }
@@ -380,8 +380,7 @@ public class PlayerController : MonoBehaviour {
             }
             
             if (state.inputDrop && !previousState.inputDrop) {
-                Application.LoadLevel(0);
-                //dropItem();
+                dropItem();
             }
             
             if (state.inputJump && !previousState.inputJump) {
