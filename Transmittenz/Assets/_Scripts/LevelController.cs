@@ -195,8 +195,9 @@ public class LevelController : MonoBehaviour {
         for(int y = 0; y < linkersTilemap.size.y; ++y) {
             for(int x = 0; x < linkersTilemap.size.x; ++x) {
                 Vector3Int tilePos = new Vector3Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y, 0);
-                Vector3Int asdfafergfergre = new Vector3Int(tilePos.x, tilePos.y, 0);
-                Sprite sprite = linkersTilemap.GetSprite(asdfafergfergre);
+                Sprite sprite = linkersTilemap.GetSprite(tilePos);
+                
+                tilePos = findUpperLeftOfInteractable(tilePos);
                 //Debug.Log("tilePos: " + tilePos);
                 
                 if (!sprite) {
@@ -254,9 +255,10 @@ public class LevelController : MonoBehaviour {
                 links[dstPos] = data;
             }
         }
-        
-        /*
-        Debug.Log("links:");
+    }
+	
+    void debugPrintLinkData() {
+        Debug.Log("DEBUG links:");
         
         foreach(Vector3Int pos in links.Keys) {
             Debug.Log("  pos: " + pos);
@@ -271,9 +273,8 @@ public class LevelController : MonoBehaviour {
                 Debug.Log("    " + dst);
             }
         }
-        */
     }
-	
+    
     Vector3Int findUpperLeftOfInteractable(Vector3Int startPos) {
         Vector3Int pos = startPos;
         int finalX, finalY;
@@ -366,17 +367,18 @@ public class LevelController : MonoBehaviour {
             }
         }
         
-        interactablesTilemap.SetTile(pos, openPanelTiles[0]);
-        interactablesTilemap.SetTile(pos + new Vector3Int(1, 0, 0), openPanelTiles[1]);
-        interactablesTilemap.SetTile(pos + new Vector3Int(0, -1, 0), openPanelTiles[2]);
-        interactablesTilemap.SetTile(pos + new Vector3Int(1, -1, 0), openPanelTiles[3]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(0, 1, 0), openPanelTiles[0]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(1, 1, 0), openPanelTiles[1]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(0, 0, 0), openPanelTiles[2]);
+        interactablesTilemap.SetTile(pos + new Vector3Int(1, 0, 0), openPanelTiles[3]);
         
         Vector3 animatonPos = interactablesTilemap.CellToWorld(pos);
+        animatonPos.y += 0.32f;
+        animatonPos.z = 0f;
         Instantiate(openPanelAnimationObject, animatonPos, Quaternion.identity);
-        spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, 0f),
+        spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, -0.5f),
                                               (1f/24f * 15));
         
-        Debug.Log(animatonPos + new Vector3(0.32f, 0f, 0f));
     }
     
     void setupStations() {

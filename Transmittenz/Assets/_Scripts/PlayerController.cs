@@ -304,7 +304,10 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (LevelController.get().itemInInventory == ItemController.Type.GravityMittens) {
-            jump();
+            if (state.isGrounded) {
+                jump();
+            }
+            
             return;
         }
         
