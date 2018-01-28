@@ -883,4 +883,35 @@ public class LevelController : MonoBehaviour {
         wiresTilemap.SetTile(wirePos, rotateWireTile(orgTile));
         powerWires();
     }
+    
+    public void explodeBlocksAt(Vector3 pos) {
+        Vector3Int tilePos = levelTilemap.WorldToCell(pos);
+        
+        for(int x = -3; x < 5; ++x) {
+            for(int y = -3; y < 5; ++y) {
+                maybeDestroyBlock(tilePos + new Vector3Int(x, y, 0));
+            }
+        }
+    }
+    
+    void maybeDestroyBlock(Vector3Int tilePos) {
+        TileBase tile = levelTilemap.GetTile(tilePos);
+        
+        if (!tile) {
+            return;
+        }
+        
+        if (!(tile is GameTile)) {
+            return;
+        }
+        
+        GameTile gameTile = (GameTile)tile;
+        
+        if (!gameTile.isDestructable) {
+            return;
+        }
+        
+        levelTilemap.SetTile(tilePos, null);
+    }
+    
 }

@@ -19,6 +19,7 @@ public class GameTile : Tile {
     public bool wireRight;
     public bool wireDown;
     public bool isWirePowered;
+    public bool isDestructable;
     
 #if UNITY_EDITOR
         [MenuItem("Assets/Create/Game Tile")]

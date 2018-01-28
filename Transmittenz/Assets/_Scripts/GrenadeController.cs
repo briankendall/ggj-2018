@@ -42,6 +42,7 @@ public class GrenadeController : MonoBehaviour {
             Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
             LevelController.get().spawnExplosionAtPositionAndVelocity(transform.localPosition, Vector3.zero,
                                                                       rot, new Vector3(2f, 2f, 2f));
+            LevelController.get().explodeBlocksAt(transform.localPosition);
             Destroy(transform.gameObject);
             return;
         }
