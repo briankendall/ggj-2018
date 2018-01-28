@@ -399,6 +399,10 @@ public class LevelController : MonoBehaviour {
         Debug.Log("Error! Tried to toggle invalid interactable!");
     }
     
+    void test() {
+        
+    }
+    
     bool interactableSourceIsOn(Vector3Int p) {
         GameTile tile = interactableTileAtTilePosition(p);
         

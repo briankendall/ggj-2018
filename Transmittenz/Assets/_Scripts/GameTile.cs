@@ -9,11 +9,16 @@ using UnityEditor;
 
 public class GameTile : Tile {
     public enum Type {
-        None, Obstacle, Ladder, Console, Station, Light, Panel, Door, Platform
+        None, Obstacle, Ladder, Console, Station, Light, Panel, Door, Platform, Wire, RotatingWirePlatform
     };
     
     public Type type = Type.None;
-    public int something;
+    
+    public bool wireLeft;
+    public bool wireUp;
+    public bool wireRight;
+    public bool wireDown;
+    public bool isWirePowered;
     
 #if UNITY_EDITOR
         [MenuItem("Assets/Create/Game Tile")]
