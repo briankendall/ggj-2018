@@ -419,6 +419,11 @@ public class LevelController : MonoBehaviour {
             return;
         }
         
+        if (tile.type == GameTile.Type.RotatingWirePlatform) {
+            toggleRotatingWire(tile, p);
+            return;
+        }
+        
         Debug.Log("Error! Tried to toggle invalid interactable!");
     }
     
@@ -765,7 +770,7 @@ public class LevelController : MonoBehaviour {
     }
     
     void recursivelyPowerWires(Vector3Int wirePos, int travelDirection) {
-        Debug.Log("recursivelyPowerWires: " + wirePos);
+        //Debug.Log("recursivelyPowerWires: " + wirePos);
         GameTile tile = (GameTile)wiresTilemap.GetTile(wirePos);
         
         if (!tile) {
@@ -773,27 +778,27 @@ public class LevelController : MonoBehaviour {
         }
         
         if (tile.isWirePowered) {
-            Debug.Log(" ... already powered");
+            //Debug.Log(" ... already powered");
             return;
         }
         
         if (travelDirection == kDirectionLeft && !tile.wireRight) {
-            Debug.Log(" ... can't travel left");
+            //Debug.Log(" ... can't travel left");
             return;
         }
         
         if (travelDirection == kDirectionRight && !tile.wireLeft) {
-            Debug.Log(" ... can't travel right");
+            //Debug.Log(" ... can't travel right");
             return;
         }
         
         if (travelDirection == kDirectionUp && !tile.wireDown) {
-            Debug.Log(" ... can't travel up");
+            //Debug.Log(" ... can't travel up");
             return;
         }
         
         if (travelDirection == kDirectionDown && !tile.wireUp) {
-            Debug.Log(" ... can't travel down");
+            //Debug.Log(" ... can't travel down");
             return;
         }
         
@@ -814,5 +819,39 @@ public class LevelController : MonoBehaviour {
         if (tile.wireDown) {
             recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown);
         }
+    }
+    
+    GameTile rotateWireTile(GameTile tile) {
+        if (tile.wireLeft && tile.wireRight && !tile.wireUp && !tile.wireDown) {
+            return unpoweredWires[9];
+        } else if (tile.wireUp && tile.wireDown && !tile.wireLeft && !tile.wireRight) {
+            return unpoweredWires[0];
+        } else if (tile.wireLeft && tile.wireUp && !tile.wireRight && !tile.wireDown) {
+            return unpoweredWires[4];
+        } else if (tile.wireUp && tile.wireRight && !tile.wireLeft && !tile.wireDown) {
+            return unpoweredWires[3];
+        } else if (tile.wireRight && tile.wireDown && !tile.wireLeft && !tile.wireUp) {
+            return unpoweredWires[1];
+        } else if (tile.wireDown && tile.wireLeft && !tile.wireRight && !tile.wireUp) {
+            return unpoweredWires[2];
+        } else if (tile.wireLeft && tile.wireUp && tile.wireRight) {
+            return unpoweredWires[7];
+        } else if (tile.wireUp && tile.wireRight && tile.wireDown) {
+            return unpoweredWires[5];
+        } else if (tile.wireRight && tile.wireDown && tile.wireLeft) {
+            return unpoweredWires[6];
+        } else if (tile.wireDown && tile.wireLeft && tile.wireUp) {
+            return unpoweredWires[8];
+        } else {
+            Debug.Log("Invalid wire tile for rotate!");
+            return null;
+        }
+    }
+    
+    void toggleRotatingWire(GameTile rotatingTile, Vector3Int wirePos) {
+        resetWires();
+        GameTile orgTile = (GameTile)wiresTilemap.GetTile(wirePos);
+        wiresTilemap.SetTile(wirePos, rotateWireTile(orgTile));
+        powerWires();
     }
 }
