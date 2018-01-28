@@ -120,6 +120,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     void jumpProper() {
+        LevelController.get().playSound("AntiGrav_1");
         state.isWindingUp = false;
         state.jumpMaxVelocityEndTime = Time.time + kJumpMaxSpeedDuration;
         state.velocity.y = kJumpInitialVerticalVelocity;
@@ -324,6 +325,7 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (interactableTile && interactableTile.type == GameTile.Type.Door && state.isGrounded) {
+            LevelController.get().playSound("Object_Door_Open");
             LevelController.get().sendToOtherEndOfDoor(transform, interactableTilePos);
             return;
         }

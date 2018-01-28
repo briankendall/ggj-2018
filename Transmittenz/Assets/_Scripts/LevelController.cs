@@ -67,6 +67,8 @@ public class LevelController : MonoBehaviour {
     int explosionCount = 0;
     List<Vector3Int> wireTiles;
     List<Vector3Int> wirePowerSources;
+    List<AudioSource> oneShotAudioSources;
+    int previouslyUsedOneShotAudioSourceIndex;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -111,6 +113,15 @@ public class LevelController : MonoBehaviour {
         stationsThatCantDepositItem = new HashSet<Vector3Int>();
         wireTiles = new List<Vector3Int>();
         wirePowerSources = new List<Vector3Int>();
+        
+        oneShotAudioSources = new List<AudioSource>(10);
+        
+        for(int i = 0; i < oneShotAudioSources.Capacity; ++i) {
+            AudioSource source = gameObject.AddComponent<AudioSource>();
+            initializeOneShotAudioSource(source);
+            oneShotAudioSources.Add(source);
+        }
+        previouslyUsedOneShotAudioSourceIndex = 0;
     }
     
     void Start () {
@@ -218,6 +229,7 @@ public class LevelController : MonoBehaviour {
         ExplosionController explosionController = item.GetComponent<ExplosionController>();
         explosionController.velocity = vel;
         explosionController.transform.localScale = scale;
+        playSound("Explosion");
     }
     
     public void setCurrentItemInInventory(ItemController.Type type) {
@@ -658,6 +670,7 @@ public class LevelController : MonoBehaviour {
         itemSpriteRenderer.enabled = true;
         animator.Play("receiveItem", -1, 0);
         clearItemInInventory();
+        playSound("Teleport_1");
     }
     
     public void reportPlayerPosition(Vector3 pos) {
@@ -704,11 +717,13 @@ public class LevelController : MonoBehaviour {
         itemPos.z = -0.75f;
         
         StartCoroutine(Timer.create((1f/24f * 12), () => {
+            playSound("Teleport_2");
             spawnItemAtPositionWithAnimationDelay(persistentData.stashedItems[station], itemPos, (1f/24f * 24));
         }));
     }
     
     public void resetLevel() {
+        playSound("Warning Klaxons");
         exploding = true;
         
         StartCoroutine(Timer.create(2.0f, () => {
@@ -927,4 +942,51 @@ public class LevelController : MonoBehaviour {
         levelTilemap.SetTile(tilePos, null);
     }
     
+    void initializeOneShotAudioSource(AudioSource source) {
+        source.loop = false;
+        source.playOnAwake = false;
+        source.bypassEffects = true;
+        source.bypassListenerEffects = true;
+        source.bypassReverbZones = true;
+        source.spatialBlend = 0;
+        source.priority = 1;
+        source.mute = false;
+        source.volume = 1;
+        source.pitch = 1;
+        source.panStereo = 0;
+    }
+    
+    AudioSource nextAvailableSource()
+    {
+        int index = (previouslyUsedOneShotAudioSourceIndex+1) % oneShotAudioSources.Count;
+        AudioSource result = null;
+        
+        for(int count = 0; count < oneShotAudioSources.Count; ++count) {
+            if (!oneShotAudioSources[index].isPlaying) {
+                previouslyUsedOneShotAudioSourceIndex = index;
+                result = oneShotAudioSources[index];
+                break;
+            }
+            
+            index = (index+1) % oneShotAudioSources.Count;
+        }
+        
+        if (!result) {
+            Debug.Log("Adding new one shot audio source");
+            result = gameObject.AddComponent<AudioSource>();
+            initializeOneShotAudioSource(result);
+            oneShotAudioSources.Add(result);
+            previouslyUsedOneShotAudioSourceIndex = oneShotAudioSources.Count-1;
+            return result;
+        } else {
+            return result;
+        }
+    }
+    
+    public void playSound(string name) {
+        AudioSource source = nextAvailableSource();
+        AudioClip clip = (AudioClip)Resources.Load("sounds/" + name);
+        source.clip = clip;
+        source.Play();
+    }
 }
