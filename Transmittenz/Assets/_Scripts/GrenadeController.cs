@@ -53,6 +53,7 @@ public class GrenadeController : MonoBehaviour {
         state.velocity.y += Constants.gravity * Time.deltaTime;
         state.velocity.y = Mathf.Clamp(state.velocity.y, -Constants.maxVerticalSpeed, Constants.maxVerticalSpeed);
         controller.move(state.velocity * Time.fixedDeltaTime);
+        transform.localPosition = new Vector3(transform.localPosition.x, transform.localPosition.y, -1f);
         
         transform.Rotate(new Vector3(0, 0, 1f), kRotationalVelocity * Time.fixedDeltaTime);
         
