@@ -42,6 +42,9 @@ public class LevelController : MonoBehaviour {
     
     public GameTile lightOnTile;
     public GameTile lightOffTile;
+    public GameTile extendedPlatformTile;
+    public GameTile retractedPlatformTile;
+    public GameTile invisiblePlatformBarrierTile;
 
     Dictionary<Vector3Int, LinkData> links;
     Dictionary<Vector3Int, Transform> stationObjects;
@@ -107,6 +110,7 @@ public class LevelController : MonoBehaviour {
         clearItemInInventory();
         buildLinksData();
         setupStations();
+        setupExtendingPlatforms();
         linkersTilemapGameObject.SetActive(false);
         
         if (persistentData.stashedItems.Count == 0) {
@@ -387,6 +391,11 @@ public class LevelController : MonoBehaviour {
             return;
         }
         
+        if (tile.type == GameTile.Type.Platform) {
+            togglePlatform(tile, p);
+            return;
+        }
+        
         Debug.Log("Error! Tried to toggle invalid interactable!");
     }
     
@@ -432,6 +441,61 @@ public class LevelController : MonoBehaviour {
         Instantiate(openPanelAnimationObject, animatonPos, Quaternion.identity);
         spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, -0.5f),
                                               (1f/24f * 15));
+        
+    }
+    
+    int platformLength(Vector3Int pos) {
+        int length = 0;
+        
+        while(interactableTileAtTilePosition(pos) != null) {
+            ++length;
+            pos.x += 1;
+        }
+        
+        return length;
+    }
+    
+    void setupExtendingPlatforms() {
+        for(int x = 0; x < interactablesTilemap.size.x; ++x) {
+            for(int y = 0; y < interactablesTilemap.size.y; ++y) {
+                Vector3Int tilePos = new Vector3Int(x + interactablesTilemap.origin.x, y + interactablesTilemap.origin.y, 0);
+                GameTile tile = interactableTileAtTilePosition(tilePos);
+                
+                if (!tile || tile != extendedPlatformTile) {
+                    continue;
+                }
+                
+                Debug.Log("tile: " + tile + " ... setting barrier at: " + tilePos);
+                levelTilemap.SetTile(tilePos, invisiblePlatformBarrierTile);
+            }
+        }
+    }
+    
+    void togglePlatform(GameTile tile, Vector3Int pos) {
+        foreach(Vector3Int p in links[pos].sources) {
+            if (!interactableSourceIsOn(p)) {
+                return;
+            }
+        }
+        
+        int length = platformLength(pos);
+        GameTile newTile;
+        
+        if (tile == extendedPlatformTile) {
+            newTile = retractedPlatformTile;
+        } else {
+            newTile = extendedPlatformTile;
+        }
+        
+        for(int x = 0; x < length; ++x) {
+            interactablesTilemap.SetTile(new Vector3Int(pos.x + x, pos.y, 0), newTile);
+            
+            if (newTile == extendedPlatformTile) {
+                levelTilemap.SetTile(new Vector3Int(pos.x + x, pos.y, 0), invisiblePlatformBarrierTile);
+            } else {
+                levelTilemap.SetTile(new Vector3Int(pos.x + x, pos.y, 0), null);
+            }
+        }
         
     }
     

@@ -9,7 +9,7 @@ using UnityEditor;
 
 public class GameTile : Tile {
     public enum Type {
-        None, Obstacle, Ladder, Console, Station, Light, Panel, Door
+        None, Obstacle, Ladder, Console, Station, Light, Panel, Door, Platform
     };
     
     public Type type = Type.None;
