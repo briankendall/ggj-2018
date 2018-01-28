@@ -29,6 +29,10 @@ public class PlayerController : MonoBehaviour {
     float kDropItemHorizontalVelocity = 2f;
     float kDropItemVerticalVelocity = 12f;
     
+    // Grenades
+    float kGrenadeHorizontalVelocity = 9.5f;
+    float kGrenadeVerticalVelocity = 8f;
+    
     
     struct PlayerState {
         public float inputX;
@@ -371,10 +375,28 @@ public class PlayerController : MonoBehaviour {
             Debug.Log("Meow!");
             return;
         }
+        
+        if (LevelController.get().itemInInventory == ItemController.Type.MouseGrenades) {
+            throwGrenade();
+            return;
+        }
     }
     
     void eatHerring() {
         LevelController.get().setCurrentItemInInventory(ItemController.Type.EatenRedHerring);
+    }
+    
+    void throwGrenade() {
+        Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
+        Vector3 vel = new Vector3();        
+        vel.y = kGrenadeVerticalVelocity;
+        vel.x = kGrenadeHorizontalVelocity;
+
+        if (state.direction == kDirectionLeft) {
+            vel.x *= -1f;
+        }
+        
+        LevelController.get().spawnMouseGrenade(playerWorldPosition(), rot, vel);
     }
     
     void sendItemIntoStation(Vector3Int stationPos) {

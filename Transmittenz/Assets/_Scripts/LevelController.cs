@@ -245,6 +245,12 @@ public class LevelController : MonoBehaviour {
         itemController.freezeForDuration(delay);
     }
     
+    public void spawnMouseGrenade(Vector2 pos, Quaternion rot, Vector2 vel) {
+        GameObject asdf = Instantiate(Resources.Load("Prefabs/mouseGrenadeGroup"), pos, Quaternion.identity) as GameObject;
+        GrenadeController controller = asdf.GetComponent<GrenadeController>();
+        controller.setVelocity(vel);
+    }
+    
     string linkerIdForTileName(string name) {
         string[] parts = name.Split('_');
         return parts[parts.Length-1];
