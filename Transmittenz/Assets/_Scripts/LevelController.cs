@@ -116,6 +116,14 @@ public class LevelController : MonoBehaviour {
                 Debug.Log("Stashed item at: " + station + "... item: " + persistentData.stashedItems[station]);
             }
         }
+        
+        GameObject o = GameObject.Find("cameraZones");
+        
+        if (o) {
+            o.SetActive(false);
+        } else {
+            Debug.Log("Couldn't set cameraZones to inactive");
+        }
     }
     
     static public GameTile tileAtTilePosition(Tilemap map, Vector3Int tilePos) {
