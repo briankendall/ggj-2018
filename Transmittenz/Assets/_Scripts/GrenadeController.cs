@@ -40,7 +40,9 @@ public class GrenadeController : MonoBehaviour {
     void FixedUpdate () {
         if (Time.time - startTime >= kFuseDuration) {
             Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
-            LevelController.get().spawnExplosionAtPositionAndVelocity(transform.localPosition, Vector3.zero,
+            Vector3 pos = transform.localPosition;
+            pos.z = -5;
+            LevelController.get().spawnExplosionAtPositionAndVelocity(pos, Vector3.zero,
                                                                       rot, new Vector3(2f, 2f, 2f));
             LevelController.get().explodeBlocksAt(transform.localPosition);
             Destroy(transform.gameObject);

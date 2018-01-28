@@ -136,6 +136,7 @@ public class LevelController : MonoBehaviour {
                 
                 itemsTilemap.SetTile(tilePos, null);
                 Vector3 pos = itemsTilemap.CellToWorld(tilePos);
+                pos.z = -1.5f;
                 spawnItemAtPositionAndVelocity(ItemController.stringToType(sprite.name), pos, Vector2.zero);
             }
         }
@@ -510,7 +511,7 @@ public class LevelController : MonoBehaviour {
         animatonPos.y += 0.32f;
         animatonPos.z = 0f;
         Instantiate(openPanelAnimationObject, animatonPos, Quaternion.identity);
-        spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, -0.5f),
+        spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, -1.5f),
                                               (1f/24f * 15));
         
     }
@@ -714,7 +715,7 @@ public class LevelController : MonoBehaviour {
         stationsThatCantDepositItem.Add(station);
         
         Vector3 itemPos = centerOfStation(station) + new Vector3(0f, -0.24f, 0.0f);
-        itemPos.z = -0.75f;
+        itemPos.z = -1.5f;
         
         StartCoroutine(Timer.create((1f/24f * 12), () => {
             playSound("Teleport_2");

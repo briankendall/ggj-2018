@@ -50,6 +50,7 @@ public class PlayerController : MonoBehaviour {
         public bool isWindingUp;
         public float windUpStartTime;
         public bool justJumpedForRealThisTime;
+        public bool windingUpThrow;
         
         public bool isClimbing;
         public float climbingTargetX;
@@ -77,6 +78,7 @@ public class PlayerController : MonoBehaviour {
             result.isWindingUp = false;
             result.windUpStartTime = 0;
             result.justJumpedForRealThisTime = false;
+            result.windingUpThrow = false;
             
             return result;
         }
@@ -315,12 +317,14 @@ public class PlayerController : MonoBehaviour {
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);
             animator.Play("pushButtons");
+            LevelController.get().playSound("meow");
             return;
         }
         
         if (interactableTile && interactableTile.type == GameTile.Type.Station &&
             LevelController.get().itemInInventory != ItemController.Type.None) {
             sendItemIntoStation(interactableTilePos);
+            LevelController.get().playSound("meow");
             return;
         }
         
@@ -347,9 +351,10 @@ public class PlayerController : MonoBehaviour {
         } else {
             itemVelocity = new Vector3(kDropItemHorizontalVelocity, kDropItemVerticalVelocity);
         }
-        
+        Vector3 pos = boxCollider.bounds.center;
+        pos.z = -1.5f;
         LevelController.get().spawnItemAtPositionAndVelocity(LevelController.get().itemInInventory,
-                                                             boxCollider.bounds.center,
+                                                             pos,
                                                              itemVelocity);
         LevelController.get().clearItemInInventory();
     }
@@ -374,6 +379,7 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (LevelController.get().itemInInventory == ItemController.Type.EatenRedHerring) {
+            LevelController.get().playSound("meow");
             Debug.Log("Meow!");
             return;
         }
@@ -389,16 +395,27 @@ public class PlayerController : MonoBehaviour {
     }
     
     void throwGrenade() {
-        Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
-        Vector3 vel = new Vector3();        
-        vel.y = kGrenadeVerticalVelocity;
-        vel.x = kGrenadeHorizontalVelocity;
-
-        if (state.direction == kDirectionLeft) {
-            vel.x *= -1f;
+        if (state.windingUpThrow) {
+            return;
         }
         
-        LevelController.get().spawnMouseGrenade(playerWorldPosition(), rot, vel);
+        state.windingUpThrow = true;
+        animator.Play("throw", -1, 0);
+        
+        StartCoroutine(Timer.create(0.33f, () => {
+            LevelController.get().playSound("Lasso_Swing");
+            state.windingUpThrow = false;
+            Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
+            Vector3 vel = new Vector3();        
+            vel.y = kGrenadeVerticalVelocity;
+            vel.x = kGrenadeHorizontalVelocity;
+
+            if (state.direction == kDirectionLeft) {
+                vel.x *= -1f;
+            }
+            
+            LevelController.get().spawnMouseGrenade(playerWorldPosition(), rot, vel);
+        }));
     }
     
     void sendItemIntoStation(Vector3Int stationPos) {
@@ -495,7 +512,7 @@ public class PlayerController : MonoBehaviour {
         //Debug.Log("  state.isGrounded: " + state.isGrounded);
         
         
-        if (animator.GetCurrentAnimatorStateInfo(0).IsName("pushButtons")) {
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("pushButtons") || animator.GetCurrentAnimatorStateInfo(0).IsName("throw")) {
             return;
         }
         
