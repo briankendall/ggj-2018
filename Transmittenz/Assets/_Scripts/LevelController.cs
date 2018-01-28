@@ -197,7 +197,6 @@ public class LevelController : MonoBehaviour {
                 Vector3Int tilePos = new Vector3Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y, 0);
                 Sprite sprite = linkersTilemap.GetSprite(tilePos);
                 
-                tilePos = findUpperLeftOfInteractable(tilePos);
                 //Debug.Log("tilePos: " + tilePos);
                 
                 if (!sprite) {
@@ -205,6 +204,8 @@ public class LevelController : MonoBehaviour {
                     tileLastTime = false;
                     continue;
                 }
+                
+                tilePos = findUpperLeftOfInteractable(tilePos);
                 
                 string id = linkerIdForTileName(sprite.name);
                 Dictionary<string, List<Vector3Int> > relevant;
@@ -255,6 +256,8 @@ public class LevelController : MonoBehaviour {
                 links[dstPos] = data;
             }
         }
+        
+        //debugPrintLinkData();
     }
 	
     void debugPrintLinkData() {
@@ -279,18 +282,25 @@ public class LevelController : MonoBehaviour {
         Vector3Int pos = startPos;
         int finalX, finalY;
         
+        //Debug.Log("findUpperLeftOfInteractable: " + startPos);
+        //Debug.Log("       interactableTileAtTilePosition(pos): " + interactableTileAtTilePosition(pos));
+        
         while(interactableTileAtTilePosition(pos) != null) {
             pos.x -= 1;
+            //Debug.Log("      " + pos);
         }
         
         finalX = pos.x + 1;
+        //Debug.Log("   finalX: " + finalX);
         pos = startPos;
         
         while(interactableTileAtTilePosition(pos) != null) {
             pos.y -= 1;
+            //Debug.Log("      " + pos);
         }
         
         finalY = pos.y + 1;
+        //Debug.Log("   finalY: " + finalY);
         
         return new Vector3Int(finalX, finalY, 0);
     }

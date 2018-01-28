@@ -8,10 +8,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 1
-  m_Script: {fileID: 11500000, guid: 8548b7fbc110844dc87a5450a71fe72e, type: 3}
-  m_Name: light_on
+  m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: floor_corner_tile_02 rot270
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 21300000, guid: e2d4b0708fcc14c80ab729edb427c1d1, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2e92a13e6e248466e88b7e79d3d4bb4c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
@@ -33,5 +33,3 @@ MonoBehaviour:
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 1
   m_ColliderType: 1
-  type: 5
-  something: 0

@@ -8,10 +8,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 1
-  m_Script: {fileID: 11500000, guid: 8548b7fbc110844dc87a5450a71fe72e, type: 3}
-  m_Name: console_0
+  m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: window_tile
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 21300000, guid: 8a1892ebeb64d46e3b2b4fbc375ae03c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 7d5407cc2f60747ff88eb81a6b14abb1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
@@ -33,5 +33,3 @@ MonoBehaviour:
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 1
   m_ColliderType: 1
-  type: 3
-  something: 0

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8548b7fbc110844dc87a5450a71fe72e, type: 3}
   m_Name: light_off
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 21300000, guid: 6fc752c43df704cbeb2749f0f1529f9b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 08a84dad3d36947c79da947d0d787e20, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
