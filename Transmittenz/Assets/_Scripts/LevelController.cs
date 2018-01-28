@@ -49,6 +49,7 @@ public class LevelController : MonoBehaviour {
     Vector3Int selectedStation;
     Vector3Int startStation;
     HashSet<Vector3Int> stationsThatCantDepositItem;
+    bool exploding = false;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -538,6 +539,38 @@ public class LevelController : MonoBehaviour {
     }
     
     public void resetLevel() {
-        Application.LoadLevel(0);
+        exploding = true;
+        
+        StartCoroutine(Timer.create(2.0f, () => {
+            Application.LoadLevel(0);
+        }));
+    }
+    
+    public void spawnExplosionAtPositionAndVelocity(Vector3 pos, Vector3 vel, Quaternion rot, Vector3 scale) {
+        GameObject item = Instantiate(Resources.Load("Prefabs/explosion"), pos, rot) as GameObject;
+        ExplosionController explosionController = item.GetComponent<ExplosionController>();
+        explosionController.velocity = vel;
+        explosionController.transform.localScale = scale;
+    }
+    
+    void Update() {
+        if (exploding) {
+            for(int i = 0; i < 10; ++i) {
+                Vector3 pos = camera.transform.localPosition;
+                pos.x += Random.Range(-10, 10);
+                pos.y += Random.Range(-6, 6);
+                pos.z = -5f;
+                
+                Vector3 v = new Vector3(Random.value, Random.value);
+                v.Normalize();
+                v *= Random.Range(0, 5);
+                
+                Quaternion rot = Quaternion.AngleAxis(Random.Range(0, 360), new Vector3(0f, 0f, 1f));
+                
+                Vector3 scale = new Vector3(3f, 3f, 3f);
+                
+                spawnExplosionAtPositionAndVelocity(pos, v, rot, scale);
+            }
+        }
     }
 }
