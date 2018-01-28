@@ -43,6 +43,9 @@ public class PlayerController : MonoBehaviour {
         public float jumpMaxVelocityEndTime;
         public bool isFalling;
         public float fallStartY;
+        public bool isWindingUp;
+        public float windUpStartTime;
+        public bool justJumpedForRealThisTime;
         
         public bool isClimbing;
         public float climbingTargetX;
@@ -67,6 +70,9 @@ public class PlayerController : MonoBehaviour {
             result.isUsingStation = false;
             result.isFalling = false;
             result.fallStartY = 0f;
+            result.isWindingUp = false;
+            result.windUpStartTime = 0;
+            result.justJumpedForRealThisTime = false;
             
             return result;
         }
@@ -75,11 +81,15 @@ public class PlayerController : MonoBehaviour {
     CharacterController2D controller;
     PlayerState state, previousState;
     BoxCollider2D boxCollider;
+    Animator animator;
+    SpriteRenderer spriteRenderer;
     
 	// Use this for initialization
 	void Start () {
         controller = GetComponent<CharacterController2D>();
         boxCollider = GetComponent<BoxCollider2D>();
+        animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
         previousState = PlayerState.initialPlayerState();
 	}
 	
@@ -99,8 +109,17 @@ public class PlayerController : MonoBehaviour {
     }
     
     void jump() {
+        if (!state.isWindingUp) {
+            state.isWindingUp = true;
+            state.windUpStartTime = Time.time;
+        }
+    }
+    
+    void jumpProper() {
+        state.isWindingUp = false;
         state.jumpMaxVelocityEndTime = Time.time + kJumpMaxSpeedDuration;
         state.velocity.y = kJumpInitialVerticalVelocity;
+        state.justJumpedForRealThisTime = true;
     }
     
     void processNormalMovement() {
@@ -110,9 +129,11 @@ public class PlayerController : MonoBehaviour {
         if (state.inputX > 0) {
             targetVelocityX = kMaxHorizontalSpeed * state.inputX;
             state.direction = kDirectionRight;
+            spriteRenderer.flipX = false;
         } else if (state.inputX < 0) {
             targetVelocityX = kMaxHorizontalSpeed * state.inputX;
             state.direction = kDirectionLeft;
+            spriteRenderer.flipX = true;
         }
         
         if (state.velocity.x > targetVelocityX) {
@@ -288,6 +309,7 @@ public class PlayerController : MonoBehaviour {
         
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);
+            animator.Play("pushButtons");
             return;
         }
         
@@ -384,6 +406,7 @@ public class PlayerController : MonoBehaviour {
         state.inputReset = (Input.GetAxis("Reset") > 0.0);
         state.inputDrop = (Input.GetAxis("Drop") > 0.0);
         state.isGrounded = controller.isGrounded;
+        state.justJumpedForRealThisTime = false;
         
         if (state.isUsingStation) {
             performStationStuff();
@@ -411,6 +434,10 @@ public class PlayerController : MonoBehaviour {
                 useItem();
             }
             
+            if (state.isWindingUp && Time.time > state.windUpStartTime + 0.22) {
+                jumpProper();
+            }
+            
             if (state.inputReset && !previousState.inputReset) {
                 LevelController.get().resetLevel();
                 return;
@@ -418,6 +445,8 @@ public class PlayerController : MonoBehaviour {
             
             previousState.isGrounded = controller.isGrounded;
             controller.move(state.velocity * Time.fixedDeltaTime);
+            
+            handleAnimations();
             
             LevelController.get().reportPlayerPosition(transform.localPosition);
             
@@ -432,5 +461,43 @@ public class PlayerController : MonoBehaviour {
         
         previousState = state;
 	}
+    
+    void handleAnimations() {
+        //Debug.Log("  state.isGrounded: " + state.isGrounded);
+        
+        
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("pushButtons")) {
+            return;
+        }
+        
+        if (state.justJumpedForRealThisTime) {
+            //Debug.Log("play jump");
+            animator.Play("jump");
+        } else if (controller.isGrounded) {
+            if (state.isWindingUp) {
+                //Debug.Log("play jumpPrep");
+                animator.Play("jumpPrep");
+            } else if (animator.GetCurrentAnimatorStateInfo(0).IsName("jump") || animator.GetCurrentAnimatorStateInfo(0).IsName("fall")) {
+                //Debug.Log("play land");
+                animator.Play("land");
+            } else {
+                if (!animator.GetCurrentAnimatorStateInfo(0).IsName("land")) {
+                    if (state.velocity.x != 0) {
+                        //Debug.Log("play walk");
+                        animator.Play("walk");
+                    } else {
+                        //Debug.Log("play idle");
+                        animator.Play("idle");
+                    }
+                }
+            }
+            
+        } else {
+            if (!animator.GetCurrentAnimatorStateInfo(0).IsName("jump") && state.velocity.y < 0) {
+                //Debug.Log("play fall");
+                animator.Play("fall");
+            }
+        }
+    }
     
 }
