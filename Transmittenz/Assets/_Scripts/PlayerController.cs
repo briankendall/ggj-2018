@@ -319,6 +319,11 @@ public class PlayerController : MonoBehaviour {
             return;
         }
         
+        if (interactableTile && interactableTile.type == GameTile.Type.Door && state.isGrounded) {
+            LevelController.get().sendToOtherEndOfDoor(transform, interactableTilePos);
+            return;
+        }
+        
         Debug.Log("Can't interact");
     }
     
