@@ -33,7 +33,7 @@ public class LevelController : MonoBehaviour {
     public Tilemap interactablesTilemap;
     public Tilemap linkersTilemap;
     public Image itemInventoryImage;
-    public ItemController.Type itemInInventory;
+    public ItemController.Type itemInInventory = ItemController.Type.None;
     public Tile[] openPanelTiles;
     public GameObject openPanelAnimationObject;
     public GameObject stationAnimationObject;
@@ -50,6 +50,7 @@ public class LevelController : MonoBehaviour {
     Vector3Int startStation;
     HashSet<Vector3Int> stationsThatCantDepositItem;
     bool exploding = false;
+    int explosionCount = 0;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -103,6 +104,7 @@ public class LevelController : MonoBehaviour {
             }
         }
         
+        clearItemInInventory();
         buildLinksData();
         setupStations();
         linkersTilemapGameObject.SetActive(false);
@@ -131,12 +133,15 @@ public class LevelController : MonoBehaviour {
     public GameObject itemOverlappingBounds(Bounds bounds) {
         //Debug.Log("itemOverlappingBounds");
         GameObject[] items = GameObject.FindGameObjectsWithTag("item");
+        
+        //Debug.Log("items: " + items);
          
-         foreach(GameObject item in items) {
+        foreach(GameObject item in items) {
             //Debug.Log("  item: " + item);
             BoxCollider2D collider = item.GetComponent<BoxCollider2D>();
             
             if (!collider) {
+                Debug.Log("No box collider on item?!");
                 continue;
             }
             
@@ -531,7 +536,7 @@ public class LevelController : MonoBehaviour {
         stationsThatCantDepositItem.Add(station);
         
         Vector3 itemPos = centerOfStation(station) + new Vector3(0f, -0.24f, 0.0f);
-        itemPos.z = -0.5f;
+        itemPos.z = -0.75f;
         
         StartCoroutine(Timer.create((1f/24f * 12), () => {
             spawnItemAtPositionWithAnimationDelay(persistentData.stashedItems[station], itemPos, (1f/24f * 24));
@@ -559,7 +564,7 @@ public class LevelController : MonoBehaviour {
                 Vector3 pos = camera.transform.localPosition;
                 pos.x += Random.Range(-10, 10);
                 pos.y += Random.Range(-6, 6);
-                pos.z = -5f;
+                pos.z = -5f - explosionCount * 0.01f;
                 
                 Vector3 v = new Vector3(Random.value, Random.value);
                 v.Normalize();
@@ -570,6 +575,7 @@ public class LevelController : MonoBehaviour {
                 Vector3 scale = new Vector3(3f, 3f, 3f);
                 
                 spawnExplosionAtPositionAndVelocity(pos, v, rot, scale);
+                ++explosionCount;
             }
         }
     }
