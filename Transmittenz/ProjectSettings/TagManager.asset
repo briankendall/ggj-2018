@@ -9,6 +9,7 @@ TagManager:
   - item
   - interactablesTilemap
   - linkersTilemap
+  - wiresTilemap
   layers:
   - Default
   - TransparentFX

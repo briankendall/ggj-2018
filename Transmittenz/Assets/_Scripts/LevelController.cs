@@ -24,14 +24,22 @@ public class LevelController : MonoBehaviour {
     const float kDistanceForStationToDeposit = 6.5f;
     const float kDistanceForStationToRegister = 6.5f;
     
+    const int kDirectionNone = -1;
+    const int kDirectionLeft = 0;
+    const int kDirectionRight = 1;
+    const int kDirectionUp = 2;
+    const int kDirectionDown = 3;
+    
     GameObject levelTilemapGameObject;
     GameObject itemsTilemapGameObject;
     GameObject interactablesTilemapGameObject;
     GameObject linkersTilemapGameObject;
+    GameObject wiresGameObject;
     public Tilemap levelTilemap;
     public Tilemap itemsTilemap;
     public Tilemap interactablesTilemap;
     public Tilemap linkersTilemap;
+    public Tilemap wiresTilemap;
     public Image itemInventoryImage;
     public ItemController.Type itemInInventory = ItemController.Type.None;
     public Tile[] openPanelTiles;
@@ -45,6 +53,9 @@ public class LevelController : MonoBehaviour {
     public GameTile extendedPlatformTile;
     public GameTile retractedPlatformTile;
     public GameTile invisiblePlatformBarrierTile;
+    
+    public GameTile[] poweredWires;
+    public GameTile[] unpoweredWires;
 
     Dictionary<Vector3Int, LinkData> links;
     Dictionary<Vector3Int, Transform> stationObjects;
@@ -54,6 +65,8 @@ public class LevelController : MonoBehaviour {
     HashSet<Vector3Int> stationsThatCantDepositItem;
     bool exploding = false;
     int explosionCount = 0;
+    List<Vector3Int> wireTiles;
+    List<Vector3Int> wirePowerSources;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -79,16 +92,25 @@ public class LevelController : MonoBehaviour {
         _singleton = this;
         
         levelTilemapGameObject = GameObject.FindGameObjectsWithTag("levelTilemap")[0];
-        itemsTilemapGameObject = GameObject.FindGameObjectsWithTag("itemsTilemap")[0];
-        interactablesTilemapGameObject = GameObject.FindGameObjectsWithTag("interactablesTilemap")[0];
-        linkersTilemapGameObject = GameObject.FindGameObjectsWithTag("linkersTilemap")[0];
         levelTilemap = levelTilemapGameObject.GetComponent<Tilemap>();
+        
+        itemsTilemapGameObject = GameObject.FindGameObjectsWithTag("itemsTilemap")[0];
         itemsTilemap = itemsTilemapGameObject.GetComponent<Tilemap>();
+        
+        interactablesTilemapGameObject = GameObject.FindGameObjectsWithTag("interactablesTilemap")[0];
         interactablesTilemap = interactablesTilemapGameObject.GetComponent<Tilemap>();
+        
+        linkersTilemapGameObject = GameObject.FindGameObjectsWithTag("linkersTilemap")[0];
         linkersTilemap = linkersTilemapGameObject.GetComponent<Tilemap>();
+        
+        wiresGameObject = GameObject.FindGameObjectsWithTag("wiresTilemap")[0];
+        wiresTilemap = wiresGameObject.GetComponent<Tilemap>();
+        
         cameraController = camera.GetComponent<CameraController>();
         stationObjects = new Dictionary<Vector3Int, Transform>();
         stationsThatCantDepositItem = new HashSet<Vector3Int>();
+        wireTiles = new List<Vector3Int>();
+        wirePowerSources = new List<Vector3Int>();
     }
     
     void Start () {
@@ -111,6 +133,7 @@ public class LevelController : MonoBehaviour {
         buildLinksData();
         setupStations();
         setupExtendingPlatforms();
+        setupWires();
         linkersTilemapGameObject.SetActive(false);
         
         if (persistentData.stashedItems.Count == 0) {
@@ -399,10 +422,6 @@ public class LevelController : MonoBehaviour {
         Debug.Log("Error! Tried to toggle invalid interactable!");
     }
     
-    void test() {
-        
-    }
-    
     bool interactableSourceIsOn(Vector3Int p) {
         GameTile tile = interactableTileAtTilePosition(p);
         
@@ -671,5 +690,129 @@ public class LevelController : MonoBehaviour {
                                       t.localPosition.y - srcDoorWorldPos.y + dstDoorWorldPos.y,
                                       t.localPosition.z);
         
+    }
+    
+    void setupWires() {
+        for(int x = 0; x < wiresTilemap.size.x; ++x) {
+            for(int y = 0; y < wiresTilemap.size.y; ++y) {
+                Vector3Int tilePos = new Vector3Int(x + wiresTilemap.origin.x, y + wiresTilemap.origin.y, 0);
+                GameTile tile = (GameTile)wiresTilemap.GetTile(tilePos);
+                
+                if (!tile) {
+                    continue;
+                }
+                
+                if (tile.type == GameTile.Type.WirePowerSource) {
+                    Debug.Log("found power source!" + tilePos);
+                    wirePowerSources.Add(tilePos);
+                } else {
+                    Debug.Log("found wire!" + tilePos);
+                    wireTiles.Add(tilePos);
+                }
+            }
+        }
+        
+        resetWires();
+        powerWires();
+    }
+    
+    int indexOfTile(GameTile[] array, GameTile x) {
+        for(int i = 0; i < array.Length; ++i) {
+            if (array[i] == x) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
+    
+    GameTile powerToUnpowered(GameTile powered) {
+        int index = indexOfTile(poweredWires, powered);
+        
+        if (index < 0) {
+            Debug.Log("Could not go power to unpowered!!");
+            return null;
+        }
+        
+        return unpoweredWires[index];
+    }
+    
+    GameTile unpoweredToPowered(GameTile unpowered) {
+        int index = indexOfTile(unpoweredWires, unpowered);
+        
+        if (index < 0) {
+            Debug.Log("Could not go unpowered to powered!!");
+            return null;
+        }
+        
+        return poweredWires[index];
+    }
+    
+    void resetWires() {
+        foreach(Vector3Int wirePos in wireTiles) {
+            GameTile orgWireTile = (GameTile)wiresTilemap.GetTile(wirePos);
+            
+            if (orgWireTile.isWirePowered) {
+                wiresTilemap.SetTile(wirePos, powerToUnpowered(orgWireTile));
+            }
+        }
+    }
+    
+    void powerWires() {
+        foreach(Vector3Int powerSourcePos in wirePowerSources) {
+            recursivelyPowerWires(powerSourcePos + new Vector3Int(0, 1, 0), kDirectionUp);
+        }
+    }
+    
+    void recursivelyPowerWires(Vector3Int wirePos, int travelDirection) {
+        Debug.Log("recursivelyPowerWires: " + wirePos);
+        GameTile tile = (GameTile)wiresTilemap.GetTile(wirePos);
+        
+        if (!tile) {
+            return;
+        }
+        
+        if (tile.isWirePowered) {
+            Debug.Log(" ... already powered");
+            return;
+        }
+        
+        if (travelDirection == kDirectionLeft && !tile.wireRight) {
+            Debug.Log(" ... can't travel left");
+            return;
+        }
+        
+        if (travelDirection == kDirectionRight && !tile.wireLeft) {
+            Debug.Log(" ... can't travel right");
+            return;
+        }
+        
+        if (travelDirection == kDirectionUp && !tile.wireDown) {
+            Debug.Log(" ... can't travel up");
+            return;
+        }
+        
+        if (travelDirection == kDirectionDown && !tile.wireUp) {
+            Debug.Log(" ... can't travel down");
+            return;
+        }
+        
+        wiresTilemap.SetTile(wirePos, unpoweredToPowered(tile));
+        
+        if (tile.wireLeft) {
+            recursivelyPowerWires(wirePos + new Vector3Int(-1, 0, 0), kDirectionLeft);
+        }
+        
+        if (tile.wireRight) {
+            recursivelyPowerWires(wirePos + new Vector3Int(1, 0, 0), kDirectionRight);
+        }
+        
+        if (tile.wireUp) {
+            recursivelyPowerWires(wirePos + new Vector3Int(0, 1, 0), kDirectionUp);
+        }
+        
+        if (tile.wireDown) {
+            recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown);
+        }
     }
 }
