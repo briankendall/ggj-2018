@@ -262,7 +262,7 @@ public class LevelController : MonoBehaviour {
     
     void buildLinksData() {
         bool tileLastTime = false;
-        Vector3Int lastTilePos = new Vector3Int();
+        Vector3Int lastInteractablePos = new Vector3Int();
         
         links = new Dictionary<Vector3Int, LinkData>();
         
@@ -271,10 +271,8 @@ public class LevelController : MonoBehaviour {
         
         for(int y = 0; y < linkersTilemap.size.y; ++y) {
             for(int x = 0; x < linkersTilemap.size.x; ++x) {
-                Vector3Int tilePos = new Vector3Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y, 0);
-                Sprite sprite = linkersTilemap.GetSprite(tilePos);
-                
-                //Debug.Log("tilePos: " + tilePos);
+                Vector3Int numberPos = new Vector3Int(x + linkersTilemap.origin.x, y + linkersTilemap.origin.y, 0);
+                Sprite sprite = linkersTilemap.GetSprite(numberPos);
                 
                 if (!sprite) {
                     //Debug.Log("  no tile!");
@@ -282,17 +280,18 @@ public class LevelController : MonoBehaviour {
                     continue;
                 }
                 
-                tilePos = findUpperLeftOfInteractable(tilePos);
+                Vector3Int interactablePos = findUpperLeftOfInteractable(numberPos);
                 
                 string id = linkerIdForTileName(sprite.name);
                 Dictionary<string, List<Vector3Int> > relevant;
                 
-                //Debug.Log(sprite.name);
+                //Debug.Log("numberPos: " + numberPos + " id: " + id + "    name: " + sprite.name);
+                
                 if (linkerTileNameIndicatesDest(sprite.name)) {
-                    //Debug.Log("adding " + tilePos + " to dests");
+                    //Debug.Log("  adding to dests");
                     relevant = dests;
                 } else {
-                    //Debug.Log("adding " + tilePos + " to sources");
+                    //Debug.Log("  adding to sources");
                     relevant = sources;
                 }
                 
@@ -301,11 +300,13 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 if (!tileLastTime) {
-                    relevant[id].Add(tilePos);
+                    //Debug.Log("  .... adding " + interactablePos);
+                    relevant[id].Add(interactablePos);
                     tileLastTime = true;
-                    lastTilePos = tilePos;
+                    lastInteractablePos = interactablePos;
                 } else {
-                    relevant[id].Add(lastTilePos);
+                    ///Debug.Log("  .... adding " + lastInteractablePos);
+                    relevant[id].Add(lastInteractablePos);
                 }
             }
         }
@@ -317,7 +318,11 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 LinkData data = links[srcPos];
-                data.dests = dests[id];
+                
+                foreach(Vector3Int blah in dests[id]) {
+                    data.dests.Add(blah);
+                }
+                
                 links[srcPos] = data;
             }
         }
@@ -329,7 +334,11 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 LinkData data = links[dstPos];
-                data.sources = sources[id];
+                
+                foreach(Vector3Int blah in sources[id]) {
+                    data.sources.Add(blah);
+                }
+                
                 links[dstPos] = data;
             }
         }
@@ -452,6 +461,7 @@ public class LevelController : MonoBehaviour {
                 return false;
             }
             
+            Debug.Log(" .. .. considering wire receiver: " + p + " ... powered: " + wireTile.isWirePowered);
             return wireTile.isWirePowered;
         }
         
@@ -521,13 +531,16 @@ public class LevelController : MonoBehaviour {
     }
     
     void togglePlatform(GameTile tile, Vector3Int pos) {
-        //Debug.Log("toggling platform! " + pos);
+        Debug.Log("toggling platform! " + pos);
         foreach(Vector3Int p in links[pos].sources) {
+            Debug.Log("... source: " + p);
             if (!interactableSourceIsOn(p)) {
-                //Debug.Log(" .. source is not on: " + p);
+                Debug.Log(" .. source is not on: " + p);
                 return;
             }
         }
+        
+        Debug.Log("platform activated!");
         
         int length = platformLength(pos);
         GameTile newTile;
@@ -731,10 +744,10 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 if (tile.type == GameTile.Type.WirePowerSource) {
-                    Debug.Log("found power source!" + tilePos);
+                    //Debug.Log("found power source!" + tilePos);
                     wirePowerSources.Add(tilePos);
                 } else {
-                    Debug.Log("found wire!" + tilePos);
+                    //Debug.Log("found wire!" + tilePos);
                     wireTiles.Add(tilePos);
                 }
             }
