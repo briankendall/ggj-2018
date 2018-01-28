@@ -8,16 +8,20 @@ public class LevelController : MonoBehaviour {
     private static LevelController _singleton = null;
 
     struct PersistentData {
-        public HashSet<Vector3Int> foundStations;
+        public List<Vector3Int> foundStations;
+        public Dictionary<Vector3Int, ItemController.Type> stashedItems;
         
         public static PersistentData defaultData() {
             PersistentData result = new PersistentData();
-            result.foundStations = new HashSet<Vector3Int>();
+            result.foundStations = new List<Vector3Int>();
+            result.stashedItems = new Dictionary<Vector3Int, ItemController.Type>();
             return result;
         }
     }
     
     static PersistentData persistentData = PersistentData.defaultData();
+    
+    const float kDistanceForStationToDeposit = 6.5f;
     
     GameObject levelTilemapGameObject;
     GameObject itemsTilemapGameObject;
@@ -32,11 +36,18 @@ public class LevelController : MonoBehaviour {
     public Tile[] openPanelTiles;
     public GameObject openPanelAnimationObject;
     public GameObject stationAnimationObject;
+    public GameObject camera;
+    public GameObject spotlightObject;
     
     public GameTile lightOnTile;
     public GameTile lightOffTile;
 
     Dictionary<Vector3Int, LinkData> links;
+    Dictionary<Vector3Int, Transform> stationObjects;
+    CameraController cameraController;
+    Vector3Int selectedStation;
+    Vector3Int startStation;
+    HashSet<Vector3Int> stationsThatCantDepositItem;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -55,7 +66,7 @@ public class LevelController : MonoBehaviour {
     }
 
     void Awake() {
-        if (!_singleton) {
+        if (_singleton) {
             Debug.Log("Warning: creating second instance of LevelController");
         }
         
@@ -69,6 +80,9 @@ public class LevelController : MonoBehaviour {
         itemsTilemap = itemsTilemapGameObject.GetComponent<Tilemap>();
         interactablesTilemap = interactablesTilemapGameObject.GetComponent<Tilemap>();
         linkersTilemap = linkersTilemapGameObject.GetComponent<Tilemap>();
+        cameraController = camera.GetComponent<CameraController>();
+        stationObjects = new Dictionary<Vector3Int, Transform>();
+        stationsThatCantDepositItem = new HashSet<Vector3Int>();
     }
     
     void Start () {
@@ -90,6 +104,14 @@ public class LevelController : MonoBehaviour {
         buildLinksData();
         setupStations();
         linkersTilemapGameObject.SetActive(false);
+        
+        if (persistentData.stashedItems.Count == 0) {
+            Debug.Log("No stashed items!");
+        } else {
+            foreach(Vector3Int station in persistentData.stashedItems.Keys) {
+                Debug.Log("Stashed item at: " + station + "... item: " + persistentData.stashedItems[station]);
+            }
+        }
     }
     
     static public GameTile tileAtTilePosition(Tilemap map, Vector3Int tilePos) {
@@ -145,7 +167,7 @@ public class LevelController : MonoBehaviour {
         itemController.setVelocity(vel);
     }
     
-    public void spawnItemAtPositionWithAnimationDelay(ItemController.Type type, Vector2 pos, float delay) {
+    public void spawnItemAtPositionWithAnimationDelay(ItemController.Type type, Vector3 pos, float delay) {
         GameObject item = Instantiate(Resources.Load("Prefabs/item"), pos, Quaternion.identity) as GameObject;
         ItemController itemController = item.GetComponent<ItemController>();
         itemController.itemType = type;
@@ -376,10 +398,17 @@ public class LevelController : MonoBehaviour {
                 }
                 
                 Vector3 pos = interactablesTilemap.CellToWorld(tilePos);
-                Instantiate(stationAnimationObject, pos, Quaternion.identity);
+                pos.y += 1.28f;
+                pos.z = -0.5f;
+                GameObject obj = (GameObject)Instantiate(stationAnimationObject, pos, Quaternion.identity);
                 processed.Add(tilePos);
+                stationObjects[tilePos] = obj.transform;
             }
         }
+    }
+    
+    Vector3 centerOfStation(Vector3Int pos) {
+        return interactablesTilemap.CellToWorld(pos) + new Vector3(.48f, .64f, 0f);
     }
     
     public void playerOnStation(Vector3Int inPos) {
@@ -387,7 +416,106 @@ public class LevelController : MonoBehaviour {
         
         if (!persistentData.foundStations.Contains(pos)) {
             persistentData.foundStations.Add(pos);
+            persistentData.foundStations.Sort((a, b) => a.x.CompareTo(b.x));
             Debug.Log("Found station! " + pos);
         }
+    }
+    
+    void doFocusOnSelectedStation() {
+        spotlightObject.SetActive(true);
+        Vector3 focusPoint = centerOfStation(selectedStation);
+        spotlightObject.transform.localPosition = new Vector3(focusPoint.x, focusPoint.y, spotlightObject.transform.localPosition.z);
+        cameraController.followGlobalPos(focusPoint);
+    }
+    
+    public void focusOnStation(Vector3Int stationPos) {
+        Vector3Int pos = findUpperLeftOfInteractable(stationPos);
+        startStation = selectedStation = pos;
+        doFocusOnSelectedStation();
+    }
+    
+    public void selectNextStation() {
+        int index = persistentData.foundStations.IndexOf(selectedStation);
+        index += 1;
+        
+        if (index >= persistentData.foundStations.Count) {
+            index = 0;
+        }
+        
+        selectedStation = persistentData.foundStations[index];
+        doFocusOnSelectedStation();
+    }
+    
+    public void selectPrevStation() {
+        int index = persistentData.foundStations.IndexOf(selectedStation);
+        index -= 1;
+        
+        if (index < 0) {
+            index = persistentData.foundStations.Count-1;
+        }
+        
+        selectedStation = persistentData.foundStations[index];
+        doFocusOnSelectedStation();
+    }
+    
+    public void cancelSelectingStation() {
+        spotlightObject.SetActive(false);
+        cameraController.followPlayer();
+    }
+    
+    public void selectStation() {
+        spotlightObject.SetActive(false);
+        cameraController.followPlayer();
+        
+        Transform stationObj = stationObjects[startStation];
+        Transform stationItemObj = stationObj.Find("stationItem");
+        
+        if (!stationItemObj) {
+            Debug.Log("Couldn't find station item object?!?");
+            return;
+        }
+        
+        Animator animator = stationObj.GetComponent<Animator>();
+        SpriteRenderer itemSpriteRenderer = stationItemObj.GetComponent<SpriteRenderer>();
+        
+        persistentData.stashedItems[selectedStation] = itemInInventory;
+        stationsThatCantDepositItem.Add(selectedStation);
+        itemSpriteRenderer.sprite = ItemController.spriteForItemType(itemInInventory);
+        itemSpriteRenderer.enabled = true;
+        animator.Play("receiveItem", -1, 0);
+        clearItemInInventory();
+    }
+    
+    public void reportPlayerPosition(Vector3 pos) {
+        foreach(Vector3Int station in persistentData.stashedItems.Keys) {
+            if (stationsThatCantDepositItem.Contains(station)) {
+                continue;
+            }
+            
+            if (!persistentData.stashedItems.ContainsKey(station)) {
+                continue;
+            }
+            
+            Vector3 stationPos = centerOfStation(station);
+            double d = (stationPos - pos).magnitude;
+            
+            if (d <= kDistanceForStationToDeposit) {
+                stationDepositItem(station);
+            }
+        }
+    }
+    
+    void stationDepositItem(Vector3Int station) {
+        Transform stationObj = stationObjects[station];
+        Animator animator = stationObj.GetComponent<Animator>();
+        animator.Play("stationClose", -1, 0);
+        stationsThatCantDepositItem.Add(station);
+        
+        Vector3 itemPos = centerOfStation(station) + new Vector3(0f, -0.24f, 0.0f);
+        itemPos.z = -0.5f;
+        
+        StartCoroutine(Timer.create((1f/24f * 12), () => {
+            spawnItemAtPositionWithAnimationDelay(persistentData.stashedItems[station], itemPos, (1f/24f * 24));
+        }));
     }
 }

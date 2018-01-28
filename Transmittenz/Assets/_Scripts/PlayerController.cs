@@ -44,8 +44,11 @@ public class PlayerController : MonoBehaviour {
         public bool isClimbing;
         public float climbingTargetX;
         
+        public bool isUsingStation;
+        public Vector3Int stationPos;
+        
         public static PlayerState initialPlayerState() {
-            PlayerState result;
+            PlayerState result = new PlayerState();
             result.inputX = 0;
             result.inputY = 0;
             result.inputJump = false;
@@ -58,6 +61,7 @@ public class PlayerController : MonoBehaviour {
             result.jumpMaxVelocityEndTime = 0;
             result.isClimbing = false;
             result.climbingTargetX = 0f;
+            result.isUsingStation = false;
             
             return result;
         }
@@ -260,7 +264,7 @@ public class PlayerController : MonoBehaviour {
         
         if (interactableTile && interactableTile.type == GameTile.Type.Station &&
             LevelController.get().itemInInventory != ItemController.Type.None) {
-            sendItemIntoStation();
+            sendItemIntoStation(interactableTilePos);
             return;
         }
         
@@ -314,8 +318,29 @@ public class PlayerController : MonoBehaviour {
         LevelController.get().setCurrentItemInInventory(ItemController.Type.EatenRedHerring);
     }
     
-    void sendItemIntoStation() {
-        
+    void sendItemIntoStation(Vector3Int stationPos) {
+        state.isUsingStation = true;
+        state.stationPos = stationPos;
+        LevelController.get().focusOnStation(stationPos);
+    }
+    
+    void performStationStuff() {
+        if (state.inputX < 0 && previousState.inputX >= 0) {
+            LevelController.get().selectPrevStation();
+            
+        } else if (state.inputX > 0 && previousState.inputX <= 0) {
+            LevelController.get().selectNextStation();
+            
+        } else if ((state.inputJump && !previousState.inputJump) ||
+                   (state.inputReset && !previousState.inputReset) ||
+                   (state.inputDrop && !previousState.inputDrop)) {
+            LevelController.get().cancelSelectingStation();
+            state.isUsingStation = false;
+            
+        } else if (state.inputAction && !previousState.inputAction) {
+            LevelController.get().selectStation();
+            state.isUsingStation = false;
+        }
     }
     
 	// Update is called once per frame
@@ -328,46 +353,58 @@ public class PlayerController : MonoBehaviour {
         state.inputDrop = (Input.GetAxis("Drop") > 0.0);
         state.isGrounded = controller.isGrounded;
         
-        GameTile interactableTile = null;
-        Vector3Int interactableTilePos = new Vector3Int();
-        findInteractableTile(ref interactableTile, ref interactableTilePos);
-        
-        if (interactableTile && interactableTile.type == GameTile.Type.Station) {
-            LevelController.get().playerOnStation(interactableTilePos);
-        }
-        
-        if (!state.isClimbing && isStartingClimbing()) {
-            startClimbing();
-        }
-        
-        if (state.isClimbing) {
-            processClimbing();
+        if (state.isUsingStation) {
+            performStationStuff();
         } else {
-            processNormalMovement();
-        }
         
-        if (state.inputAction && !previousState.inputAction) {
-            performAction(interactableTile, interactableTilePos);
-        }
-        
-        if (state.inputDrop && !previousState.inputDrop) {
-            Application.LoadLevel(0);
-            //dropItem();
-        }
-        
-        if (state.inputJump && !previousState.inputJump) {
-            useItem();
-        }
-        
-        previousState.isGrounded = controller.isGrounded;
-        controller.move(state.velocity * Time.fixedDeltaTime);
-        
-        if (controller.collisionState.left || controller.collisionState.right) {
-            state.velocity.x = 0f;
-        }
-        
-        if (controller.isGrounded && !state.isGrounded) {
-            landedOnGround();
+            GameTile interactableTile = null;
+            Vector3Int interactableTilePos = new Vector3Int();
+            findInteractableTile(ref interactableTile, ref interactableTilePos);
+            
+            if (interactableTile && interactableTile.type == GameTile.Type.Station) {
+                LevelController.get().playerOnStation(interactableTilePos);
+            }
+            
+            if (!state.isClimbing && isStartingClimbing()) {
+                startClimbing();
+            }
+            
+            if (state.isClimbing) {
+                processClimbing();
+            } else {
+                processNormalMovement();
+            }
+            
+            if (state.inputAction && !previousState.inputAction) {
+                performAction(interactableTile, interactableTilePos);
+            }
+            
+            if (state.inputDrop && !previousState.inputDrop) {
+                Application.LoadLevel(0);
+                //dropItem();
+            }
+            
+            if (state.inputJump && !previousState.inputJump) {
+                useItem();
+            }
+            
+            if (state.inputReset && !previousState.inputReset) {
+                Application.LoadLevel(0);
+                return;
+            }
+            
+            previousState.isGrounded = controller.isGrounded;
+            controller.move(state.velocity * Time.fixedDeltaTime);
+            
+            LevelController.get().reportPlayerPosition(transform.localPosition);
+            
+            if (controller.collisionState.left || controller.collisionState.right) {
+                state.velocity.x = 0f;
+            }
+            
+            if (controller.isGrounded && !state.isGrounded) {
+                landedOnGround();
+            }
         }
         
         previousState = state;

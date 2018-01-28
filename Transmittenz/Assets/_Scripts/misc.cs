@@ -17,3 +17,20 @@ static public class misc : object {
         return new Vector2Int(a.x, a.y);
     }
 }
+
+public class Timer {
+    public delegate void Callback();
+    
+    public static IEnumerator create(float duration, Callback callback) {
+        return timerRoutine(duration, callback);
+    }
+
+    private static IEnumerator timerRoutine(float duration, Callback callback)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (callback != null) {
+            callback();
+        }
+    }
+}
