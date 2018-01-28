@@ -536,4 +536,8 @@ public class LevelController : MonoBehaviour {
             spawnItemAtPositionWithAnimationDelay(persistentData.stashedItems[station], itemPos, (1f/24f * 24));
         }));
     }
+    
+    public void resetLevel() {
+        Application.LoadLevel(0);
+    }
 }

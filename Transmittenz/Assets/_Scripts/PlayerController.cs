@@ -11,8 +11,9 @@ public class PlayerController : MonoBehaviour {
     const int kDirectionUp = 2;
     const int kDirectionDown = 3;
 
-    float kMaxHorizontalSpeed = 6.0f;
-    float kHorizontalAccel = 20f;
+    const float kMaxHorizontalSpeed = 6.0f;
+    const float kHorizontalAccel = 20f;
+    const float kMaxFallBeforeDeath = 10f;
     
     // Jumping
     float kJumpInitialVerticalVelocity = 7f;
@@ -40,6 +41,8 @@ public class PlayerController : MonoBehaviour {
         public bool isGrounded;
         public Vector2 velocity;
         public float jumpMaxVelocityEndTime;
+        public bool isFalling;
+        public float fallStartY;
         
         public bool isClimbing;
         public float climbingTargetX;
@@ -62,6 +65,8 @@ public class PlayerController : MonoBehaviour {
             result.isClimbing = false;
             result.climbingTargetX = 0f;
             result.isUsingStation = false;
+            result.isFalling = false;
+            result.fallStartY = 0f;
             
             return result;
         }
@@ -119,6 +124,16 @@ public class PlayerController : MonoBehaviour {
         if (!controller.isGrounded) {
             if (state.inputJump && Time.time < state.jumpMaxVelocityEndTime) {
                 applyGravity = false;
+            }
+            
+            if (state.velocity.y < 0) {
+                state.isFalling = true;
+                
+                if (!previousState.isFalling) {
+                    state.fallStartY = transform.localPosition.y;
+                }
+            } else {
+                state.isFalling = false;
             }
         }
         
@@ -210,7 +225,16 @@ public class PlayerController : MonoBehaviour {
     }
     
     void landedOnGround() {
+        Debug.Log("landed!");
         state.isClimbing = false;
+        
+        if (state.isFalling) {
+            float distance = Mathf.Abs(transform.localPosition.y - state.fallStartY);
+            
+            if (distance > kMaxFallBeforeDeath) {
+                LevelController.get().resetLevel();
+            }
+        }
     }
     
     void findInteractableTile(ref GameTile result, ref Vector3Int resultPos) {
@@ -388,7 +412,7 @@ public class PlayerController : MonoBehaviour {
             }
             
             if (state.inputReset && !previousState.inputReset) {
-                Application.LoadLevel(0);
+                LevelController.get().resetLevel();
                 return;
             }
             
