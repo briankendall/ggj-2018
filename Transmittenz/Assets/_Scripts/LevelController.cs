@@ -392,6 +392,7 @@ public class LevelController : MonoBehaviour {
         }
         
         foreach(Vector3Int p in links[srcPos].dests) {
+            //Debug.Log("  toggling: " + p);
             toggleInteractable(p);
         }
     }
@@ -424,6 +425,11 @@ public class LevelController : MonoBehaviour {
             return;
         }
         
+        if (tile.type == GameTile.Type.WirePowerReceiver) {
+            //togglePowerReceiver(tile, p);
+            return;
+        }
+        
         Debug.Log("Error! Tried to toggle invalid interactable!");
     }
     
@@ -432,19 +438,28 @@ public class LevelController : MonoBehaviour {
         
         if (tile.type == GameTile.Type.Light) {
             return tile == lightOnTile;
+        } else  if (tile.type == GameTile.Type.WirePowerReceiver) {
+            GameTile wireTile = (GameTile)wiresTilemap.GetTile(p);
+            
+            if (!wireTile) {
+                Debug.Log("No corresponding wire tile?!");
+                return false;
+            }
+            
+            return wireTile.isWirePowered;
         }
         
         return true;
     }
     
     void toggleLight(GameTile tile, Vector3Int p) {
-        Debug.Log("Toggling light!");
+        //Debug.Log("Toggling light!");
         
         if (tile == lightOnTile) {
-            Debug.Log("  off!");
+            //Debug.Log("  off!");
             interactablesTilemap.SetTile(p, lightOffTile);
         } else {
-            Debug.Log("  on!");
+            //Debug.Log("  on!");
             interactablesTilemap.SetTile(p, lightOnTile);
         }
         
@@ -493,15 +508,17 @@ public class LevelController : MonoBehaviour {
                     continue;
                 }
                 
-                Debug.Log("tile: " + tile + " ... setting barrier at: " + tilePos);
+                //Debug.Log("tile: " + tile + " ... setting barrier at: " + tilePos);
                 levelTilemap.SetTile(tilePos, invisiblePlatformBarrierTile);
             }
         }
     }
     
     void togglePlatform(GameTile tile, Vector3Int pos) {
+        //Debug.Log("toggling platform! " + pos);
         foreach(Vector3Int p in links[pos].sources) {
             if (!interactableSourceIsOn(p)) {
+                //Debug.Log(" .. source is not on: " + p);
                 return;
             }
         }
@@ -804,20 +821,26 @@ public class LevelController : MonoBehaviour {
         
         wiresTilemap.SetTile(wirePos, unpoweredToPowered(tile));
         
-        if (tile.wireLeft) {
-            recursivelyPowerWires(wirePos + new Vector3Int(-1, 0, 0), kDirectionLeft);
-        }
+        if (tile.type == GameTile.Type.WirePowerReceiver) {
+            triggerInteractableSource(wirePos, false);
+            
+        } else {
         
-        if (tile.wireRight) {
-            recursivelyPowerWires(wirePos + new Vector3Int(1, 0, 0), kDirectionRight);
-        }
-        
-        if (tile.wireUp) {
-            recursivelyPowerWires(wirePos + new Vector3Int(0, 1, 0), kDirectionUp);
-        }
-        
-        if (tile.wireDown) {
-            recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown);
+            if (tile.wireLeft) {
+                recursivelyPowerWires(wirePos + new Vector3Int(-1, 0, 0), kDirectionLeft);
+            }
+            
+            if (tile.wireRight) {
+                recursivelyPowerWires(wirePos + new Vector3Int(1, 0, 0), kDirectionRight);
+            }
+            
+            if (tile.wireUp) {
+                recursivelyPowerWires(wirePos + new Vector3Int(0, 1, 0), kDirectionUp);
+            }
+            
+            if (tile.wireDown) {
+                recursivelyPowerWires(wirePos + new Vector3Int(0, -1, 0), kDirectionDown);
+            }
         }
     }
     
