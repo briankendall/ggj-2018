@@ -32,11 +32,15 @@ public class ItemController : MonoBehaviour {
     CharacterController2D controller;
     SpriteRenderer spriteRenderer;
     private Type _itemType;
+    float awakeTime;
+    float startTime;
     
 	// Use this for initialization
 	void Awake () {
 		controller = GetComponent<CharacterController2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        awakeTime = Time.time;
+        startTime = 0f;
 	}
     
     public static Sprite spriteForItemType(Type type) {
@@ -63,9 +67,16 @@ public class ItemController : MonoBehaviour {
     public void setVelocity(Vector2 vel) {
         state.velocity = vel;
     }
+    
+    public void freezeForDuration(float delay) {
+        startTime = awakeTime + delay;
+    }
 	
 	// Update is called once per frame
 	void FixedUpdate () {
+        if (Time.time < startTime) {
+            return;
+        }
         
         state.velocity.x *= kHorizontalVelocityDampenFactor;
         state.velocity.y += Constants.gravity * Time.deltaTime;

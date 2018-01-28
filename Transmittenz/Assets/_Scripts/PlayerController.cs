@@ -241,7 +241,7 @@ public class PlayerController : MonoBehaviour {
         }
     }
     
-    void performAction() {
+    void performAction(GameTile interactableTile, Vector3Int interactableTilePos) {
         Vector3 actionPos = transform.localPosition;
         
         GameObject item = LevelController.get().itemOverlappingBounds(boxCollider.bounds);
@@ -253,13 +253,14 @@ public class PlayerController : MonoBehaviour {
             return;
         }
         
-        GameTile interactableTile = null;
-        Vector3Int interactableTilePos = new Vector3Int();
-        
-        findInteractableTile(ref interactableTile, ref interactableTilePos);
-        
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);
+            return;
+        }
+        
+        if (interactableTile && interactableTile.type == GameTile.Type.Station &&
+            LevelController.get().itemInInventory != ItemController.Type.None) {
+            sendItemIntoStation();
             return;
         }
         
@@ -313,6 +314,10 @@ public class PlayerController : MonoBehaviour {
         LevelController.get().setCurrentItemInInventory(ItemController.Type.EatenRedHerring);
     }
     
+    void sendItemIntoStation() {
+        
+    }
+    
 	// Update is called once per frame
 	void FixedUpdate () {
         state.inputX = Input.GetAxis("Horizontal");
@@ -322,6 +327,14 @@ public class PlayerController : MonoBehaviour {
         state.inputReset = (Input.GetAxis("Reset") > 0.0);
         state.inputDrop = (Input.GetAxis("Drop") > 0.0);
         state.isGrounded = controller.isGrounded;
+        
+        GameTile interactableTile = null;
+        Vector3Int interactableTilePos = new Vector3Int();
+        findInteractableTile(ref interactableTile, ref interactableTilePos);
+        
+        if (interactableTile && interactableTile.type == GameTile.Type.Station) {
+            LevelController.get().playerOnStation(interactableTilePos);
+        }
         
         if (!state.isClimbing && isStartingClimbing()) {
             startClimbing();
@@ -334,11 +347,12 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (state.inputAction && !previousState.inputAction) {
-            performAction();
+            performAction(interactableTile, interactableTilePos);
         }
         
         if (state.inputDrop && !previousState.inputDrop) {
-            dropItem();
+            Application.LoadLevel(0);
+            //dropItem();
         }
         
         if (state.inputJump && !previousState.inputJump) {

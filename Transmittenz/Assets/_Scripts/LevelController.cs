@@ -7,6 +7,18 @@ using UnityEngine.UI;
 public class LevelController : MonoBehaviour {
     private static LevelController _singleton = null;
 
+    struct PersistentData {
+        public HashSet<Vector3Int> foundStations;
+        
+        public static PersistentData defaultData() {
+            PersistentData result = new PersistentData();
+            result.foundStations = new HashSet<Vector3Int>();
+            return result;
+        }
+    }
+    
+    static PersistentData persistentData = PersistentData.defaultData();
+    
     GameObject levelTilemapGameObject;
     GameObject itemsTilemapGameObject;
     GameObject interactablesTilemapGameObject;
@@ -19,6 +31,7 @@ public class LevelController : MonoBehaviour {
     public ItemController.Type itemInInventory;
     public Tile[] openPanelTiles;
     public GameObject openPanelAnimationObject;
+    public GameObject stationAnimationObject;
     
     public GameTile lightOnTile;
     public GameTile lightOffTile;
@@ -43,11 +56,10 @@ public class LevelController : MonoBehaviour {
 
     void Awake() {
         if (!_singleton) {
-            _singleton = this;
-        } else {
-            Debug.Log("Warning: trying to create second instance of LevelController");
-            return;
+            Debug.Log("Warning: creating second instance of LevelController");
         }
+        
+        _singleton = this;
         
         levelTilemapGameObject = GameObject.FindGameObjectsWithTag("levelTilemap")[0];
         itemsTilemapGameObject = GameObject.FindGameObjectsWithTag("itemsTilemap")[0];
@@ -76,6 +88,7 @@ public class LevelController : MonoBehaviour {
         }
         
         buildLinksData();
+        setupStations();
         linkersTilemapGameObject.SetActive(false);
     }
     
@@ -130,6 +143,13 @@ public class LevelController : MonoBehaviour {
         ItemController itemController = item.GetComponent<ItemController>();
         itemController.itemType = type;
         itemController.setVelocity(vel);
+    }
+    
+    public void spawnItemAtPositionWithAnimationDelay(ItemController.Type type, Vector2 pos, float delay) {
+        GameObject item = Instantiate(Resources.Load("Prefabs/item"), pos, Quaternion.identity) as GameObject;
+        ItemController itemController = item.GetComponent<ItemController>();
+        itemController.itemType = type;
+        itemController.freezeForDuration(delay);
     }
     
     string linkerIdForTileName(string name) {
@@ -232,16 +252,24 @@ public class LevelController : MonoBehaviour {
         */
     }
 	
-    Vector3Int findUpperLeftOfInteractable(Vector3Int pos) {
+    Vector3Int findUpperLeftOfInteractable(Vector3Int startPos) {
+        Vector3Int pos = startPos;
+        int finalX, finalY;
+        
         while(interactableTileAtTilePosition(pos) != null) {
             pos.x -= 1;
         }
+        
+        finalX = pos.x + 1;
+        pos = startPos;
         
         while(interactableTileAtTilePosition(pos) != null) {
             pos.y -= 1;
         }
         
-        return new Vector3Int(pos.x+1, pos.y+1, 0);
+        finalY = pos.y + 1;
+        
+        return new Vector3Int(finalX, finalY, 0);
     }
     
     
@@ -323,5 +351,43 @@ public class LevelController : MonoBehaviour {
         
         Vector3 animatonPos = interactablesTilemap.CellToWorld(pos);
         Instantiate(openPanelAnimationObject, animatonPos, Quaternion.identity);
+        spawnItemAtPositionWithAnimationDelay(ItemController.Type.GravityMittens, animatonPos + new Vector3(0.32f, 0f, 0f),
+                                              (1f/24f * 15));
+        
+        Debug.Log(animatonPos + new Vector3(0.32f, 0f, 0f));
+    }
+    
+    void setupStations() {
+        HashSet<Vector3Int> processed = new HashSet<Vector3Int>();
+        
+        for(int x = 0; x < interactablesTilemap.size.x; ++x) {
+            for(int y = 0; y < interactablesTilemap.size.y; ++y) {
+                Vector3Int tilePos = new Vector3Int(x + interactablesTilemap.origin.x, y + interactablesTilemap.origin.y, 0);
+                GameTile tile = interactableTileAtTilePosition(tilePos);
+                
+                if (!tile || tile.type != GameTile.Type.Station) {
+                    continue;
+                }
+                
+                tilePos = findUpperLeftOfInteractable(tilePos);
+                
+                if (processed.Contains(tilePos)) {
+                    continue;
+                }
+                
+                Vector3 pos = interactablesTilemap.CellToWorld(tilePos);
+                Instantiate(stationAnimationObject, pos, Quaternion.identity);
+                processed.Add(tilePos);
+            }
+        }
+    }
+    
+    public void playerOnStation(Vector3Int inPos) {
+        Vector3Int pos = findUpperLeftOfInteractable(inPos);
+        
+        if (!persistentData.foundStations.Contains(pos)) {
+            persistentData.foundStations.Add(pos);
+            Debug.Log("Found station! " + pos);
+        }
     }
 }
