@@ -245,7 +245,7 @@ public class PlayerController : MonoBehaviour {
         }
     }
     
-    void performAction(GameTile interactableTile, Vector3Int interactableTilePos) {
+    void performAction() {
         Vector3 actionPos = transform.localPosition;
         
         GameObject item = LevelController.get().itemOverlappingBounds(boxCollider.bounds);
@@ -256,6 +256,11 @@ public class PlayerController : MonoBehaviour {
             Destroy(item);
             return;
         }
+        
+        GameTile interactableTile = null;
+        Vector3Int interactableTilePos = new Vector3Int();
+        findInteractableTile(ref interactableTile, ref interactableTilePos);
+        
         
         if (interactableTile && interactableTile.type == GameTile.Type.Console) {
             LevelController.get().activateConsole(interactableTilePos);
@@ -359,14 +364,6 @@ public class PlayerController : MonoBehaviour {
         if (state.isUsingStation) {
             performStationStuff();
         } else {
-        
-            GameTile interactableTile = null;
-            Vector3Int interactableTilePos = new Vector3Int();
-            findInteractableTile(ref interactableTile, ref interactableTilePos);
-            
-            if (interactableTile && interactableTile.type == GameTile.Type.Station) {
-                LevelController.get().playerOnStation(interactableTilePos);
-            }
             
             if (!state.isClimbing && isStartingClimbing()) {
                 startClimbing();
@@ -379,7 +376,7 @@ public class PlayerController : MonoBehaviour {
             }
             
             if (state.inputAction && !previousState.inputAction) {
-                performAction(interactableTile, interactableTilePos);
+                performAction();
             }
             
             if (state.inputDrop && !previousState.inputDrop) {

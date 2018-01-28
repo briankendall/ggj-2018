@@ -22,6 +22,7 @@ public class LevelController : MonoBehaviour {
     static PersistentData persistentData = PersistentData.defaultData();
     
     const float kDistanceForStationToDeposit = 6.5f;
+    const float kDistanceForStationToRegister = 6.5f;
     
     GameObject levelTilemapGameObject;
     GameObject itemsTilemapGameObject;
@@ -423,16 +424,6 @@ public class LevelController : MonoBehaviour {
         return interactablesTilemap.CellToWorld(pos) + new Vector3(.48f, .64f, 0f);
     }
     
-    public void playerOnStation(Vector3Int inPos) {
-        Vector3Int pos = findUpperLeftOfInteractable(inPos);
-        
-        if (!persistentData.foundStations.Contains(pos)) {
-            persistentData.foundStations.Add(pos);
-            persistentData.foundStations.Sort((a, b) => a.x.CompareTo(b.x));
-            Debug.Log("Found station! " + pos);
-        }
-    }
-    
     void doFocusOnSelectedStation() {
         spotlightObject.SetActive(true);
         Vector3 focusPoint = centerOfStation(selectedStation);
@@ -513,6 +504,21 @@ public class LevelController : MonoBehaviour {
             
             if (d <= kDistanceForStationToDeposit) {
                 stationDepositItem(station);
+            }
+        }
+        
+        foreach(Vector3Int station in stationObjects.Keys) {
+            if (persistentData.foundStations.Contains(station)) {
+                continue;
+            }
+            
+            Vector3 stationPos = centerOfStation(station);
+            double d = (stationPos - pos).magnitude;
+            
+            if (d <= kDistanceForStationToRegister) {
+                persistentData.foundStations.Add(station);
+                persistentData.foundStations.Sort((a, b) => a.x.CompareTo(b.x));
+                Debug.Log("Found station! " + station);
             }
         }
     }
