@@ -10,6 +10,7 @@ TagManager:
   - interactablesTilemap
   - linkersTilemap
   - wiresTilemap
+  - explosion
   layers:
   - Default
   - TransparentFX

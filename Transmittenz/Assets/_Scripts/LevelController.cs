@@ -69,6 +69,8 @@ public class LevelController : MonoBehaviour {
     List<Vector3Int> wirePowerSources;
     List<AudioSource> oneShotAudioSources;
     int previouslyUsedOneShotAudioSourceIndex;
+    float nextExplosionSoundTime = 0f;
+    bool resetingLevel = false;
     
     struct LinkData {
         public List<Vector3Int> sources;
@@ -205,7 +207,7 @@ public class LevelController : MonoBehaviour {
     
     void Update() {
         if (exploding) {
-            for(int i = 0; i < 10; ++i) {
+            for(int i = 0; i < 5; ++i) {
                 Vector3 pos = camera.transform.localPosition;
                 pos.x += Random.Range(-10, 10);
                 pos.y += Random.Range(-6, 6);
@@ -230,7 +232,11 @@ public class LevelController : MonoBehaviour {
         ExplosionController explosionController = item.GetComponent<ExplosionController>();
         explosionController.velocity = vel;
         explosionController.transform.localScale = scale;
-        playSound("Explosion");
+        
+        if (nextExplosionSoundTime == 0f || Time.time >= nextExplosionSoundTime) {
+            playSound("Explosion", 0.3f);
+            nextExplosionSoundTime = Time.time + Random.Range(0.08f, 0.12f);
+        }
     }
     
     public void setCurrentItemInInventory(ItemController.Type type) {
@@ -724,11 +730,24 @@ public class LevelController : MonoBehaviour {
     }
     
     public void resetLevel() {
+        if (resetingLevel) {
+            return;
+        }
+        
+        resetingLevel = true;
         playSound("Warning Klaxons");
         playSound("meow");
         exploding = true;
         
         StartCoroutine(Timer.create(2.0f, () => {
+            /*GameObject[] explosions = GameObject.FindGameObjectsWithTag("explosion");
+            Debug.Log("count: " + explosions.Length);
+            foreach(GameObject explosion in explosions) {
+                ExplosionController e = explosion.GetComponent<ExplosionController>();
+                e.freeze();
+            }*/
+            exploding = false;
+            
             Application.LoadLevel(0);
         }));
     }
@@ -981,6 +1000,15 @@ public class LevelController : MonoBehaviour {
         }
         
         if (!result) {
+            /*
+            index = previouslyUsedOneShotAudioSourceIndex-1;
+            
+            if (index < 0) {
+                index = oneShotAudioSources.Count-1;
+            }
+            
+            return oneShotAudioSources[index];
+            */
             Debug.Log("Adding new one shot audio source");
             result = gameObject.AddComponent<AudioSource>();
             initializeOneShotAudioSource(result);
@@ -992,10 +1020,11 @@ public class LevelController : MonoBehaviour {
         }
     }
     
-    public void playSound(string name) {
+    public void playSound(string name, float volume=1) {
         AudioSource source = nextAvailableSource();
         AudioClip clip = (AudioClip)Resources.Load("sounds/" + name);
         source.clip = clip;
+        source.volume = volume;
         source.Play();
     }
 }
